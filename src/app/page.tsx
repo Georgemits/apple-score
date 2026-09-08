@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Reveal } from "@/components/reveal";
 import { AppleMark } from "@/components/logo";
 import { formatNumber } from "@/lib/utils";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ const FEATURES = [
   },
   {
     icon: Trophy,
-    title: "Climb the leaderboard",
+    title: "Go band for band",
     description:
       "See exactly where you stand against every other Apple fan — and how far you are from the top spot.",
   },
@@ -50,7 +51,7 @@ export default async function LandingPage() {
             <AppleMark className="size-3.5" />
             {productCount > 0
               ? `${formatNumber(productCount)} products in the catalogue`
-              : "The Apple collection leaderboard"}
+              : "The Apple collection rankings"}
           </Badge>
         </Reveal>
 
@@ -76,7 +77,7 @@ export default async function LandingPage() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link href="/leaderboard">View leaderboard</Link>
+              <Link href="/leaderboard">{LEADERBOARD_NAME}</Link>
             </Button>
           </div>
         </Reveal>

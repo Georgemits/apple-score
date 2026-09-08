@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
 export default function NotFound() {
   return (
@@ -14,7 +15,7 @@ export default function NotFound() {
           <Link href="/">Go home</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/leaderboard">View leaderboard</Link>
+          <Link href="/leaderboard">{LEADERBOARD_NAME}</Link>
         </Button>
       </div>
     </div>

@@ -27,6 +27,7 @@ import {
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { logoutAction } from "@/actions/auth";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 import { cn, initials } from "@/lib/utils";
 
 type NavUser = { username: string; email: string } | null;
@@ -36,12 +37,12 @@ type NavLink = { href: string; label: string; icon: LucideIcon };
 const AUTHED_LINKS: NavLink[] = [
   { href: "/home", label: "Home", icon: HomeIcon },
   { href: "/products/add", label: "Add product", icon: Plus },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/leaderboard", label: LEADERBOARD_NAME, icon: Trophy },
   { href: "/profile", label: "Profile", icon: UserIcon },
 ];
 
 const GUEST_LINKS: NavLink[] = [
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/leaderboard", label: LEADERBOARD_NAME, icon: Trophy },
 ];
 
 function LogoutForm({ className }: { className?: string }) {
@@ -78,10 +79,9 @@ export function SiteNav({ user }: { user: NavUser }) {
         >
           <Link
             href={user ? "/home" : "/"}
-            className="rounded-lg focus-visible:ring-2 focus-visible:ring-ring"
+            className="-m-2 rounded-lg p-2 transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Logo />
-            <span className="sr-only">Apple Score home</span>
           </Link>
 
           <ul className="hidden items-center gap-1 md:flex">

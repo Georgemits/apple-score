@@ -5,6 +5,7 @@ import { Boxes, Layers, PackagePlus, Trophy } from "lucide-react";
 import { auth } from "@/auth";
 import { getInventory, getUserRank, summarize } from "@/lib/queries";
 import { CATEGORY_LABEL } from "@/lib/categories";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 import { formatNumber, formatUSD } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScoreHero } from "@/components/score-hero";
@@ -52,7 +53,7 @@ export default async function HomePage() {
             <Button asChild size="lg" variant="outline">
               <Link href="/leaderboard">
                 <Trophy aria-hidden="true" />
-                Leaderboard
+                {LEADERBOARD_NAME}
               </Link>
             </Button>
           </>
@@ -71,7 +72,7 @@ export default async function HomePage() {
             icon={Boxes}
           />
           <StatCard
-            label="Leaderboard rank"
+            label="Rank"
             value={rank ? `#${formatNumber(rank.rank)}` : "—"}
             hint={rank ? `of ${formatNumber(rank.totalUsers)} users` : undefined}
             icon={Trophy}

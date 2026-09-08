@@ -47,7 +47,7 @@ export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: Leaderb
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search users…"
-          aria-label="Search the leaderboard by username"
+          aria-label="Search users by username"
           className="pl-11 pr-11"
         />
         {query && (
@@ -76,7 +76,7 @@ export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: Leaderb
         <EmptyState
           icon={SearchX}
           title="No users found"
-          description={`Nobody on the leaderboard matches “${query}”.`}
+          description={`Nobody on the board matches “${query}”.`}
           action={
             <Button variant="outline" onClick={() => setQuery("")}>
               Clear search

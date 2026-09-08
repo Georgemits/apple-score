@@ -12,7 +12,7 @@ Apple Score = Σ (product MSRP × quantity)
 Own two iPhone 17 Pro Max ($1,199 each) and one MacBook Pro 16" M4 Max ($3,499)?
 Your Apple Score is **5,897**.
 
-Add products, watch your score update instantly, and climb a global leaderboard.
+Add products, watch your score update instantly, and climb **Band for Band** — the global ranking.
 
 ---
 
@@ -43,8 +43,8 @@ Add products, watch your score update instantly, and climb a global leaderboard.
   Watch, AirPods, Vision, Displays, Apple TV & Home, and Accessories
 - Add products with a quantity, edit quantities, remove one unit or remove a product entirely
   (with a confirmation dialog)
-- Instant score recalculation on every change — home, profile and leaderboard all stay in sync
-- Global leaderboard ranked by Apple Score, with gold/silver/bronze styling for the top three and
+- Instant score recalculation on every change — home, profile and Band for Band all stay in sync
+- **Band for Band**, the global ranking by Apple Score, with gold/silver/bronze styling for the top three and
   your own rank always visible
 - Public profile pages at `/u/<username>` with a shareable link
 
@@ -53,7 +53,7 @@ Add products, watch your score update instantly, and climb a global leaderboard.
 - 10 achievement badges (Mac Collector, iPhone Enthusiast, Spatial Pioneer, The 1%, …)
 - Confetti when you cross a score milestone (1k / 5k / 10k / 25k / 50k / 100k)
 - Spending-by-category chart and a recent-additions activity feed
-- Leaderboard search, catalogue search with instant filtering and category chips
+- Band for Band search, catalogue search with instant filtering and category chips
 - A playful 🥲 *Lowest Apple Score* badge for whoever is currently at the bottom
 - Light / dark / system themes, glassmorphic Apple-inspired UI, Framer Motion transitions
 - Loading skeletons, error boundaries, and a fully responsive mobile-first layout
@@ -186,7 +186,7 @@ npm run db:seed
 The seed is **idempotent** — it upserts by product slug, so it is safe to re-run after adding new
 products to `prisma/products.ts`.
 
-To also create demo accounts (`tim`, `steve`, `alex`, `casey`) so the leaderboard has something to
+To also create demo accounts (`tim`, `steve`, `alex`, `casey`) so the ranking has something to
 show, opt in explicitly:
 
 ```bash
@@ -241,7 +241,7 @@ src/
     (auth)/login         # /login
     (auth)/signup        # /signup
     home                 # /home
-    leaderboard          # /leaderboard
+    leaderboard          # /leaderboard  (titled "Band for Band" in the UI)
     products/add         # /products/add
     profile              # /profile
     u/[username]         # /u/<username> public profile
@@ -259,6 +259,7 @@ src/
     achievements.ts      # Achievement definitions
     validations.ts       # Zod schemas
     categories.ts        # Labels, search keywords, tints
+    branding.ts          # LEADERBOARD_NAME — the ranking page's display name
     utils.ts             # cn() and formatters
 ```
 
@@ -272,7 +273,7 @@ export function calculateScore(items: readonly ScorableItem[]): number {
 }
 ```
 
-The leaderboard cannot express `SUM(price × quantity)` through Prisma's typed `groupBy`, so
+The ranking cannot express `SUM(price × quantity)` through Prisma's typed `groupBy`, so
 [`getLeaderboard()`](src/lib/queries.ts) uses a single window-function query instead of loading
 every inventory row into memory:
 
@@ -324,7 +325,7 @@ database access. Vercel is the natural fit.
 ## Accessibility
 
 - Semantic landmarks, a skip-to-content link, and a real `<table>` with a caption and scoped
-  headers for the leaderboard
+  headers for the ranking table
 - Every interactive control is keyboard reachable with a visible `:focus-visible` ring
 - Radix primitives handle dialog focus trapping and `aria-*` wiring
 - Live regions announce filtered result counts and quantity changes

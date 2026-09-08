@@ -121,7 +121,7 @@ export function ProfileView({ user, stats, recent, rank, isOwner }: ProfileViewP
             icon={PackagePlus}
           />
           <StatCard
-            label="Leaderboard rank"
+            label="Rank"
             value={rank ? `#${formatNumber(rank.rank)}` : "—"}
             hint={rank ? `of ${formatNumber(rank.totalUsers)} users` : undefined}
             icon={Trophy}

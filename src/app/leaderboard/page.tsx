@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Trophy, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { getLeaderboard } from "@/lib/queries";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 import { formatNumber, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { RankMedal } from "@/components/rank-medal";
 import { EmptyState } from "@/components/empty-state";
 
 export const metadata: Metadata = {
-  title: "Leaderboard",
+  title: LEADERBOARD_NAME,
   description: "Every Apple Score, ranked from highest to lowest.",
 };
 
@@ -25,7 +26,7 @@ export default async function LeaderboardPage() {
   return (
     <div className="container space-y-8 px-4 py-8 sm:px-6 sm:py-12">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl">Leaderboard</h1>
+        <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl">{LEADERBOARD_NAME}</h1>
         <p className="text-muted-foreground">
           {leaderboard.totalUsers === 0
             ? "Nobody has signed up yet."

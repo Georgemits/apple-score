@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export const BOTTOM_BADGE = {
   emoji: "🥲",
   label: "Lowest Apple Score",
-  description: "Currently holding up the rest of the leaderboard. Plenty of room to climb.",
+  description: "Currently holding up the rest of the board. Plenty of room to climb.",
 } as const;
 
 export function BottomBadge({ className }: { className?: string }) {

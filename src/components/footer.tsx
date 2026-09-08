@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppleMark } from "@/components/logo";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
 export function Footer() {
   return (
@@ -11,7 +12,7 @@ export function Footer() {
         </p>
         <nav aria-label="Footer">
           <Link href="/leaderboard" className="transition-colors hover:text-foreground">
-            Leaderboard
+            {LEADERBOARD_NAME}
           </Link>
         </nav>
       </div>
