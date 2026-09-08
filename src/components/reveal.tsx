@@ -1,7 +1,5 @@
-"use client";
-
 import type * as React from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 type RevealProps = {
   children: React.ReactNode;
@@ -9,21 +7,23 @@ type RevealProps = {
   className?: string;
 };
 
-/** Fades + lifts content into view once, respecting reduced-motion. */
+/**
+ * Fades + lifts content into view.
+ *
+ * Deliberately CSS-driven rather than JS-driven: a requestAnimationFrame-based
+ * entrance leaves `opacity: 0` in the server-rendered HTML, so the content is
+ * invisible until hydration runs — and stays invisible entirely if the page
+ * loads in a background tab (where rAF is paused) or if JS fails. A keyframe
+ * animation needs neither hydration nor rAF, and `prefers-reduced-motion`
+ * collapses it to an instant, fully visible final state.
+ */
 export function Reveal({ children, delay = 0, className }: RevealProps) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) return <div className={className}>{children}</div>;
-
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+    <div
+      className={cn("animate-enter-up", className)}
+      style={{ animationDelay: `${Math.round(delay * 1000)}ms` }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

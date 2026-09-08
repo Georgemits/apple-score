@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import type { Category, Product } from "@prisma/client";
-import { AnimatePresence, motion } from "framer-motion";
 import { Check, Plus, Search, SearchX, X } from "lucide-react";
 import { addProductAction } from "@/actions/products";
 import { useScoreAction } from "@/hooks/use-score-action";
@@ -157,21 +156,13 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
         />
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <AnimatePresence mode="popLayout">
             {filtered.map((product, index) => {
               const ownedCount = owned[product.id] ?? 0;
               return (
-                <motion.li
+                <li
                   key={product.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{
-                    duration: 0.22,
-                    delay: Math.min(index * 0.012, 0.2),
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
+                  className="animate-enter-up"
+                  style={{ animationDelay: `${Math.min(index * 12, 200)}ms` }}
                 >
                   <Card className="h-full transition-shadow hover:shadow-lg">
                     <button
@@ -206,10 +197,9 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
                       <Plus className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                     </button>
                   </Card>
-                </motion.li>
+                </li>
               );
             })}
-          </AnimatePresence>
         </ul>
       )}
 

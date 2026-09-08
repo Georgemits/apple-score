@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { Pencil, Trash2 } from "lucide-react";
 import type { InventoryItem } from "@/lib/queries";
 import { removeProductAction, setQuantityAction } from "@/actions/products";
@@ -81,12 +80,9 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
   };
 
   return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.28, delay: Math.min(index * 0.03, 0.24), ease: [0.22, 1, 0.36, 1] }}
+    <li
+      className="animate-enter-up"
+      style={{ animationDelay: `${Math.min(index * 30, 240)}ms` }}
     >
       <Card className="flex h-full flex-col gap-4 p-5" aria-busy={isPending}>
         <div className="flex items-start gap-4">
@@ -208,6 +204,6 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.li>
+    </li>
   );
 }

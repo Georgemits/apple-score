@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Search, SearchX, X } from "lucide-react";
 import type { LeaderboardRow } from "@/lib/queries";
 import { cn, formatDate, formatNumber, initials } from "@/lib/utils";
@@ -112,12 +111,11 @@ export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: Leaderb
               </thead>
               <tbody>
                 {filtered.map((row, index) => (
-                  <motion.tr
+                  <tr
                     key={row.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2, delay: Math.min(index * 0.015, 0.3) }}
+                    style={{ animationDelay: `${Math.min(index * 15, 300)}ms` }}
                     className={cn(
+                      "animate-enter-up",
                       "border-b border-border/60 transition-colors last:border-0 hover:bg-secondary/50",
                       row.id === currentUserId && "bg-accent/[0.07]"
                     )}
@@ -155,7 +153,7 @@ export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: Leaderb
                     <td className="hidden px-5 py-3 text-right text-muted-foreground md:table-cell">
                       {formatDate(new Date(row.createdAt))}
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
             </table>
