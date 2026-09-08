@@ -9,12 +9,9 @@ export function Footer() {
           <AppleMark className="size-4" />
           Apple Score — an unofficial, for-fun project. Not affiliated with Apple Inc.
         </p>
-        <nav aria-label="Footer" className="flex items-center gap-5">
+        <nav aria-label="Footer">
           <Link href="/leaderboard" className="transition-colors hover:text-foreground">
             Leaderboard
-          </Link>
-          <Link href="/" className="transition-colors hover:text-foreground">
-            About
           </Link>
         </nav>
       </div>
