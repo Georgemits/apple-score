@@ -115,6 +115,25 @@ openssl rand -base64 32
 
 Any PostgreSQL 14+ database works. Two zero-cost options:
 
+### Local Postgres with Docker (fastest way to run it)
+
+If Docker Desktop is running, one container is enough for local development:
+
+```bash
+docker run -d --name apple-score-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=apple_score -p 5432:5432 postgres:16-alpine
+```
+
+Then point both URLs at it in `.env`:
+
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/apple_score"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/apple_score"
+```
+
+Stop it with `docker stop apple-score-db`, start it again with
+`docker start apple-score-db`, or remove it entirely with
+`docker rm -f apple-score-db`.
+
 ### Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
