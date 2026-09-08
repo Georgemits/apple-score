@@ -331,6 +331,20 @@ database access. Vercel is the natural fit.
 - All animation is disabled under `prefers-reduced-motion`, including confetti
 - Colour is never the only signal — medals, badges and the category chart all carry text labels
 
+## Known limitations
+
+**Unknown public profiles are soft 404s.** `/u/<unknown>` renders the not-found UI correctly,
+but responds `200` rather than `404`. The root layout awaits `auth()` to render the navbar,
+which makes every route render dynamically; Next.js commits the response status before the
+page body reaches `notFound()`. The metadata for those pages sets `noindex, nofollow` so search
+engines do not index them. Removing `force-dynamic` and moving `notFound()` into
+`generateMetadata` were both tried and neither changes the status — the fix would be to stop
+reading the session in the root layout, which is a larger architectural change.
+
+**Two npm advisories remain**, both in the PostCSS version that Next.js vendors internally.
+They are build-time only, require attacker-controlled CSS, and are fixable only by upgrading to
+Next.js 16 — outside this project's Next.js 15 requirement. Run `npm audit` to review.
+
 ## Disclaimer
 
 Apple Score is an unofficial, for-fun project and is **not affiliated with, endorsed by, or

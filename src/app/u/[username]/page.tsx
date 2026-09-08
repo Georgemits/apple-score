@@ -13,7 +13,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { username } = await params;
   const profile = await getPublicProfile(username);
 
-  if (!profile) return { title: "Profile not found" };
+  // The root layout awaits `auth()` for the navbar, so every route renders
+  // dynamically and Next commits a 200 before `notFound()` is reached in the
+  // page body below. The not-found UI still renders; `noindex` keeps search
+  // engines from indexing that soft 404.
+  if (!profile) {
+    return { title: "Profile not found", robots: { index: false, follow: false } };
+  }
 
   const description = `${profile.user.username} has an Apple Score of ${formatNumber(
     profile.stats.score
