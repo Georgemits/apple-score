@@ -1,0 +1,74 @@
+// Apple Score — Prisma schema
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Product families used for filtering, grouping and achievements.
+enum Category {
+  IPHONE
+  IPAD
+  MAC
+  WATCH
+  AIRPODS
+  VISION
+  DISPLAY
+  TV_HOME
+  ACCESSORY
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  products UserProduct[]
+
+  @@index([createdAt])
+}
+
+/// Global catalogue of Apple products. Shared by every user.
+model Product {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  category  Category
+  /// Launch MSRP in whole US dollars.
+  priceUSD  Int
+  image     String
+  /// Year the product was announced — used for sorting "newest first".
+  year      Int
+  createdAt DateTime @default(now())
+
+  owners UserProduct[]
+
+  @@index([category])
+  @@index([priceUSD])
+}
+
+/// Join table: which products a user owns, and how many of each.
+model UserProduct {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
