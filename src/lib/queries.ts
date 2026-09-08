@@ -79,7 +79,9 @@ export type LeaderboardRow = {
 export type Leaderboard = {
   rows: LeaderboardRow[];
   totalUsers: number;
-  /** User ids that hold the (playful) lowest-score badge. */
+  /** User ids that hold the "Rich Millionaire" badge. */
+  topUserIds: string[];
+  /** User ids that hold the (playful) "Broke Alert" badge. */
   bottomUserIds: string[];
 };
 
@@ -119,14 +121,20 @@ export async function getLeaderboard(): Promise<Leaderboard> {
   const lowest = scores.length > 0 ? Math.min(...scores) : 0;
   const highest = scores.length > 0 ? Math.max(...scores) : 0;
 
-  // Only hand out the wooden-spoon badge once the board is big enough for it to
-  // be a joke rather than a statement about the only person there.
-  const bottomUserIds =
-    totalUsers >= 3 && lowest < highest
-      ? rows.filter((row) => row.score === lowest).map((row) => row.id)
-      : [];
+  // Both badges need at least two people and an actual spread — otherwise the
+  // same person would be crowned and mocked at once, and a lone user would be
+  // told they are last.
+  const contested = totalUsers >= 2 && lowest < highest;
 
-  return { rows, totalUsers, bottomUserIds };
+  const topUserIds = contested
+    ? rows.filter((row) => row.score === highest).map((row) => row.id)
+    : [];
+
+  const bottomUserIds = contested
+    ? rows.filter((row) => row.score === lowest).map((row) => row.id)
+    : [];
+
+  return { rows, totalUsers, topUserIds, bottomUserIds };
 }
 
 /** Wrapped in `cache` so a page and its `generateMetadata` share one query. */

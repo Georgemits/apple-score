@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { RankMedal } from "@/components/rank-medal";
+import { BottomBadge, TopBadge } from "@/components/score-badges";
 import { EmptyState } from "@/components/empty-state";
 
 export const metadata: Metadata = {
@@ -69,6 +70,8 @@ export default async function LeaderboardPage() {
                       <p className="text-xs text-muted-foreground">
                         {formatNumber(row.productCount)} products
                       </p>
+                      {leaderboard.topUserIds.includes(row.id) && <TopBadge />}
+                      {leaderboard.bottomUserIds.includes(row.id) && <BottomBadge />}
                     </Card>
                   </li>
                 ))}
@@ -78,6 +81,7 @@ export default async function LeaderboardPage() {
 
           <LeaderboardTable
             rows={leaderboard.rows}
+            topUserIds={leaderboard.topUserIds}
             bottomUserIds={leaderboard.bottomUserIds}
             currentUserId={session?.user?.id}
           />

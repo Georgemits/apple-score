@@ -11,19 +11,26 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RankMedal } from "@/components/rank-medal";
-import { BottomBadge } from "@/components/bottom-badge";
+import { BottomBadge, TopBadge } from "@/components/score-badges";
 import { EmptyState } from "@/components/empty-state";
 
 type LeaderboardTableProps = {
   rows: LeaderboardRow[];
+  topUserIds: string[];
   bottomUserIds: string[];
   currentUserId?: string | undefined;
 };
 
-export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: LeaderboardTableProps) {
+export function LeaderboardTable({
+  rows,
+  topUserIds,
+  bottomUserIds,
+  currentUserId,
+}: LeaderboardTableProps) {
   const [query, setQuery] = React.useState("");
   const deferredQuery = React.useDeferredValue(query);
 
+  const topIds = React.useMemo(() => new Set(topUserIds), [topUserIds]);
   const bottomIds = React.useMemo(() => new Set(bottomUserIds), [bottomUserIds]);
 
   const filtered = React.useMemo(() => {
@@ -68,7 +75,12 @@ export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: Leaderb
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Your rank
           </p>
-          <LeaderboardRowView row={me} isCurrentUser isBottom={bottomIds.has(me.id)} />
+          <LeaderboardRowView
+            row={me}
+            isCurrentUser
+            isTop={topIds.has(me.id)}
+            isBottom={bottomIds.has(me.id)}
+          />
         </Card>
       )}
 
@@ -139,6 +151,7 @@ export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: Leaderb
                           </Link>
                           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                             {row.id === currentUserId && <Badge variant="accent">You</Badge>}
+                            {topIds.has(row.id) && <TopBadge />}
                             {bottomIds.has(row.id) && <BottomBadge />}
                           </div>
                         </div>
@@ -167,10 +180,12 @@ export function LeaderboardTable({ rows, bottomUserIds, currentUserId }: Leaderb
 function LeaderboardRowView({
   row,
   isCurrentUser,
+  isTop,
   isBottom,
 }: {
   row: LeaderboardRow;
   isCurrentUser: boolean;
+  isTop: boolean;
   isBottom: boolean;
 }) {
   return (
@@ -183,6 +198,7 @@ function LeaderboardRowView({
         <p className="truncate font-medium">@{row.username}</p>
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
           {isCurrentUser && <Badge variant="accent">You</Badge>}
+          {isTop && <TopBadge />}
           {isBottom && <BottomBadge />}
         </div>
       </div>
