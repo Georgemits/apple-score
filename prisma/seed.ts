@@ -1,6 +1,7 @@
 import { PrismaClient, type Category } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { CATEGORY_IMAGE, PRODUCTS } from "./products";
+import { LEGACY_PRODUCTS } from "./legacy-products";
 
 const prisma = new PrismaClient();
 
@@ -55,9 +56,12 @@ const DEMO_USERS: { username: string; email: string; owns: Record<string, number
 ];
 
 async function seedProducts() {
-  console.log(`→ Seeding ${PRODUCTS.length} products…`);
+  const all = [...PRODUCTS, ...LEGACY_PRODUCTS];
+  console.log(
+    `→ Seeding ${all.length} products (${PRODUCTS.length} current, ${LEGACY_PRODUCTS.length} legacy)…`
+  );
 
-  for (const product of PRODUCTS) {
+  for (const product of all) {
     const category = product.category as Category;
     await prisma.product.upsert({
       where: { slug: product.slug },
@@ -66,6 +70,7 @@ async function seedProducts() {
         category,
         priceUSD: product.priceUSD,
         year: product.year,
+        legacy: product.legacy ?? false,
         image: CATEGORY_IMAGE[category],
       },
       create: {
@@ -74,13 +79,15 @@ async function seedProducts() {
         category,
         priceUSD: product.priceUSD,
         year: product.year,
+        legacy: product.legacy ?? false,
         image: CATEGORY_IMAGE[category],
       },
     });
   }
 
   const total = await prisma.product.count();
-  console.log(`✓ Product catalogue ready (${total} products).`);
+  const legacy = await prisma.product.count({ where: { legacy: true } });
+  console.log(`✓ Product catalogue ready (${total} products, ${legacy} legacy).`);
 }
 
 async function seedDemoUsers() {

@@ -5,6 +5,7 @@ import { Boxes, Layers, PackagePlus, Trophy } from "lucide-react";
 import { auth } from "@/auth";
 import { getInventory, getUserRank, summarize } from "@/lib/queries";
 import { CATEGORY_LABEL } from "@/lib/categories";
+import { unitPrice } from "@/lib/score";
 import { LEADERBOARD_NAME } from "@/lib/branding";
 import { formatNumber, formatUSD } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,7 @@ export default async function HomePage() {
             label="Most valuable"
             value={
               stats.mostValuable
-                ? formatUSD(stats.mostValuable.product.priceUSD * stats.mostValuable.quantity)
+                ? formatUSD(unitPrice(stats.mostValuable) * stats.mostValuable.quantity)
                 : "—"
             }
             hint={stats.mostValuable?.product.name}

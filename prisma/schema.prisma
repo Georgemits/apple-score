@@ -22,6 +22,8 @@ enum Category {
   DISPLAY
   TV_HOME
   ACCESSORY
+  IPOD
+  CLASSIC
 }
 
 model User {
@@ -48,12 +50,15 @@ model Product {
   image     String
   /// Year the product was announced — used for sorting "newest first".
   year      Int
+  /// Discontinued / vintage hardware. Surfaced with a "Legacy" badge.
+  legacy    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   owners UserProduct[]
 
   @@index([category])
   @@index([priceUSD])
+  @@index([legacy])
 }
 
 /// Join table: which products a user owns, and how many of each.
@@ -62,6 +67,9 @@ model UserProduct {
   userId    String
   productId String
   quantity  Int      @default(1)
+  /// What the owner actually paid per unit, in whole US dollars. Null means
+  /// "use the product's MSRP" — set when a unit was bought second-hand.
+  pricePaidUSD Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

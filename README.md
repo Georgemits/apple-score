@@ -6,11 +6,14 @@ Apple Score turns your Apple collection into a single competitive number. Every 
 contributes its launch MSRP to your total:
 
 ```
-Apple Score = Σ (product MSRP × quantity)
+Apple Score = Σ ( (price paid ?? MSRP) × quantity × (legacy ? 1.10 : 1) )
 ```
 
 Own two iPhone 17 Pro Max ($1,199 each) and one MacBook Pro 16" M4 Max ($3,499)?
 Your Apple Score is **5,897**.
+
+Legacy hardware earns a 10% premium, and you can override the MSRP with what you actually paid
+if you bought second-hand — a $2,500 second-hand Mac Pro (2019) scores 2,750.
 
 Add products, watch your score update instantly, and climb **Band for Band** — the global ranking.
 
@@ -39,8 +42,12 @@ Add products, watch your score update instantly, and climb **Band for Band** —
 **Core**
 
 - Email + password authentication (sign up, log in, log out) with hashed passwords and JWT sessions
-- A global catalogue of **125+ Apple products** with real launch MSRPs, spanning iPhone, Mac, iPad,
-  Watch, AirPods, Vision, Displays, Apple TV & Home, and Accessories
+- A global catalogue of **233 Apple products** with real launch MSRPs, spanning iPhone, Mac, iPad,
+  Watch, AirPods, iPod, Vision, Displays, Apple TV & Home, Accessories and Classic hardware
+- **108 legacy products** — everything from the Apple I and Macintosh 128K through iPods, the
+  original iPhone and Intel Macs — marked with a Legacy badge and worth a **+10% score bonus**
+- **Second-hand pricing**: record what you actually paid per unit and the score follows it,
+  falling back to MSRP when left blank
 - Add products with a quantity, edit quantities, remove one unit or remove a product entirely
   (with a confirmation dialog)
 - Instant score recalculation on every change — home, profile and Band for Band all stay in sync
@@ -225,7 +232,8 @@ records) at your own image URLs if you have real photography.
 ```
 prisma/
   schema.prisma          # User, Product, UserProduct, Category enum
-  products.ts            # The Apple catalogue (125+ products)
+  products.ts            # Current Apple catalogue (125 products)
+  legacy-products.ts     # Discontinued / vintage hardware (108 products)
   seed.ts                # Idempotent seed script
   migrations/            # SQL migrations
 public/product-art/         # Category line-art SVGs
@@ -268,8 +276,9 @@ src/
 The formula lives in one place — [`src/lib/score.ts`](src/lib/score.ts):
 
 ```ts
-export function calculateScore(items: readonly ScorableItem[]): number {
-  return items.reduce((total, item) => total + item.product.priceUSD * item.quantity, 0);
+export function lineTotal(item: ScorableItem): number {
+  const base = unitPrice(item) * item.quantity; // pricePaidUSD ?? MSRP
+  return item.product.legacy ? Math.round(base * (1 + LEGACY_BONUS)) : base;
 }
 ```
 
@@ -280,7 +289,10 @@ every inventory row into memory:
 ```sql
 WITH scores AS (
   SELECT u.id, u.username, u."createdAt",
-         COALESCE(SUM(p."priceUSD" * up.quantity), 0)::int AS score, …
+         COALESCE(SUM(ROUND(
+           COALESCE(up."pricePaidUSD", p."priceUSD") * up.quantity
+           * CASE WHEN p.legacy THEN 1.10 ELSE 1 END
+         )), 0)::int AS score, …
   FROM "User" u
   LEFT JOIN "UserProduct" up ON up."userId" = u.id AND up.quantity > 0
   LEFT JOIN "Product" p ON p.id = up."productId"
@@ -289,7 +301,11 @@ WITH scores AS (
 SELECT s.*, RANK() OVER (ORDER BY s.score DESC)::int AS rank FROM scores s ORDER BY rank
 ```
 
-Ties share a rank (1, 2, 2, 4). Prices are whole US dollars, so scores are always integers.
+Ties share a rank (1, 2, 2, 4). Prices are whole US dollars and the legacy bonus is rounded, so
+scores are always integers. The SQL multiplier is derived from the same `LEGACY_BONUS` constant
+the TypeScript uses, and is emitted as a numeric literal so Postgres does exact decimal
+arithmetic — `ROUND()` and `Math.round()` then agree on every `.5` boundary (verified across 240
+cases spanning both).
 
 ## Deploying to Vercel
 

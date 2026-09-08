@@ -9,6 +9,7 @@ import {
   addProductSchema,
   productIdSchema,
   setQuantitySchema,
+  updateOwnedItemSchema,
   MAX_QUANTITY,
 } from "@/lib/validations";
 import { failure, type ActionResult } from "@/actions/types";
@@ -107,6 +108,52 @@ export async function setQuantityAction(input: unknown): Promise<ActionResult<Sc
     await prisma.userProduct.update({
       where: { userId_productId: { userId: session.userId, productId } },
       data: { quantity },
+    });
+  }
+
+  const after = await getUserStats(session.userId);
+  revalidate(session.username);
+
+  return {
+    ok: true,
+    data: {
+      score: after.score,
+      productCount: after.productCount,
+      milestone: milestoneReached(before.score, after.score),
+    },
+  };
+}
+
+/**
+ * Updates one owned line: quantity and the price actually paid. Pass
+ * `pricePaidUSD: null` to fall back to MSRP, or a quantity of 0 to remove the
+ * product entirely.
+ */
+export async function updateOwnedItemAction(input: unknown): Promise<ActionResult<ScoreUpdate>> {
+  const session = await requireUserId();
+  if (!session.ok) return failure(session.error);
+
+  const parsed = updateOwnedItemSchema.safeParse(input);
+  if (!parsed.success) {
+    return failure("Invalid quantity or price.", parsed.error.flatten().fieldErrors);
+  }
+
+  const { productId, quantity, pricePaidUSD } = parsed.data;
+  const before = await getUserStats(session.userId);
+
+  if (quantity === 0) {
+    await prisma.userProduct.deleteMany({ where: { userId: session.userId, productId } });
+  } else {
+    const owned = await prisma.userProduct.findUnique({
+      where: { userId_productId: { userId: session.userId, productId } },
+      select: { id: true },
+    });
+
+    if (!owned) return failure("You do not own that product.");
+
+    await prisma.userProduct.update({
+      where: { userId_productId: { userId: session.userId, productId } },
+      data: { quantity, pricePaidUSD },
     });
   }
 

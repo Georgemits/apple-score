@@ -61,6 +61,31 @@ export const setQuantitySchema = z.object({
     .max(MAX_QUANTITY, `Quantity must be at most ${MAX_QUANTITY}.`),
 });
 
+/** Upper bound on a hand-entered second-hand price. */
+export const MAX_PRICE_PAID = 50_000;
+
+/**
+ * Editing one owned line: quantity plus an optional second-hand price.
+ * A null price means "fall back to the product's MSRP".
+ */
+export const updateOwnedItemSchema = z.object({
+  productId: z.string().min(1, "Product is required."),
+  quantity: z.coerce
+    .number()
+    .int("Quantity must be a whole number.")
+    .min(0, "Quantity cannot be negative.")
+    .max(MAX_QUANTITY, `Quantity must be at most ${MAX_QUANTITY}.`),
+  // The null branch comes first so a null survives instead of being coerced to 0.
+  pricePaidUSD: z.union([
+    z.null(),
+    z.coerce
+      .number()
+      .int("Price must be a whole number of dollars.")
+      .min(0, "Price cannot be negative.")
+      .max(MAX_PRICE_PAID, `Price must be at most $${MAX_PRICE_PAID.toLocaleString("en-US")}.`),
+  ]),
+});
+
 export const productIdSchema = z.object({
   productId: z.string().min(1, "Product is required."),
 });

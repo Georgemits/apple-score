@@ -7,6 +7,7 @@ import { addProductAction } from "@/actions/products";
 import { useScoreAction } from "@/hooks/use-score-action";
 import { CATEGORIES, CATEGORY_KEYWORDS, CATEGORY_LABEL } from "@/lib/categories";
 import { MAX_QUANTITY } from "@/lib/validations";
+import { lineTotal } from "@/lib/score";
 import { formatNumber, formatUSD } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
 import { ProductImage } from "@/components/product-image";
 import { QuantityStepper } from "@/components/quantity-stepper";
 import { EmptyState } from "@/components/empty-state";
+import { LegacyBadge } from "@/components/legacy-badge";
 
 type ProductCatalogProps = {
   products: Product[];
@@ -38,6 +40,7 @@ function matches(product: Product, query: string): boolean {
     product.slug,
     CATEGORY_LABEL[product.category].toLowerCase(),
     ...CATEGORY_KEYWORDS[product.category],
+    ...(product.legacy ? ["legacy", "vintage", "discontinued", "old"] : []),
   ].join(" ");
 
   // Every whitespace-separated term must appear somewhere.
@@ -51,6 +54,7 @@ function matches(product: Product, query: string): boolean {
 export function ProductCatalog({ products, owned }: ProductCatalogProps) {
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<Category | "ALL">("ALL");
+  const [legacyOnly, setLegacyOnly] = React.useState(false);
   const [selected, setSelected] = React.useState<Product | null>(null);
   const [quantity, setQuantity] = React.useState(1);
 
@@ -61,9 +65,11 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
     () =>
       products.filter(
         (product) =>
-          (category === "ALL" || product.category === category) && matches(product, deferredQuery)
+          (category === "ALL" || product.category === category) &&
+          (!legacyOnly || product.legacy) &&
+          matches(product, deferredQuery)
       ),
-    [products, category, deferredQuery]
+    [products, category, legacyOnly, deferredQuery]
   );
 
   const openProduct = (product: Product) => {
@@ -129,6 +135,15 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
               />
             );
           })}
+
+          <span className="mx-1 h-6 w-px self-center bg-border" aria-hidden="true" />
+
+          <FilterChip
+            active={legacyOnly}
+            onClick={() => setLegacyOnly((value) => !value)}
+            label="🕰 Legacy only"
+            count={products.filter((product) => product.legacy).length}
+          />
         </div>
 
         <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -148,6 +163,7 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
               onClick={() => {
                 setQuery("");
                 setCategory("ALL");
+                setLegacyOnly(false);
               }}
             >
               Reset filters
@@ -183,6 +199,7 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
                         </span>
                         <span className="mt-1 flex flex-wrap items-center gap-2">
                           <Badge variant="outline">{CATEGORY_LABEL[product.category]}</Badge>
+                          {product.legacy && <LegacyBadge />}
                           <span className="tabular text-sm text-muted-foreground">
                             {formatUSD(product.priceUSD)}
                           </span>
@@ -211,6 +228,7 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
                 <DialogTitle>Add {selected.name}</DialogTitle>
                 <DialogDescription>
                   {CATEGORY_LABEL[selected.category]} · {formatUSD(selected.priceUSD)} MSRP
+                  {selected.legacy && " · legacy, +10% bonus"}
                   {(owned[selected.id] ?? 0) > 0 &&
                     ` · you already own ${owned[selected.id]}`}
                 </DialogDescription>
@@ -238,9 +256,12 @@ export function ProductCatalog({ products, owned }: ProductCatalogProps) {
                   <p className="tabular text-sm text-muted-foreground">
                     Adds{" "}
                     <span className="font-semibold text-foreground">
-                      {formatNumber(selected.priceUSD * quantity)}
+                      {formatNumber(
+                        lineTotal({ quantity, pricePaidUSD: null, product: selected })
+                      )}
                     </span>{" "}
                     Apple Points
+                    {selected.legacy && " (legacy bonus included)"}
                   </p>
                 </div>
               </div>

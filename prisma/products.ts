@@ -8,6 +8,8 @@ export type SeedProduct = {
   priceUSD: number;
   /** Year the product was announced. */
   year: number;
+  /** Discontinued / vintage hardware. Rendered with a "Legacy" badge. */
+  legacy?: boolean;
 };
 
 /**
@@ -15,6 +17,8 @@ export type SeedProduct = {
  * Swap this for a CDN URL per product if you have real product photography.
  */
 export const CATEGORY_IMAGE: Record<Category, string> = {
+  IPOD: "/product-art/ipod.svg",
+  CLASSIC: "/product-art/classic.svg",
   IPHONE: "/product-art/iphone.svg",
   IPAD: "/product-art/ipad.svg",
   MAC: "/product-art/mac.svg",

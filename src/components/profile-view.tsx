@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarDays, Boxes, Layers, PackagePlus, Trophy } from "lucide-react";
 import type { InventoryItem, RankSummary, UserStats } from "@/lib/queries";
 import { getAchievements } from "@/lib/achievements";
+import { unitPrice } from "@/lib/score";
 import { CATEGORY_LABEL } from "@/lib/categories";
 import { formatDate, formatMonthYear, formatNumber, formatUSD, initials } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -114,7 +115,7 @@ export function ProfileView({ user, stats, recent, rank, isOwner }: ProfileViewP
             label="Most valuable"
             value={
               stats.mostValuable
-                ? formatUSD(stats.mostValuable.product.priceUSD * stats.mostValuable.quantity)
+                ? formatUSD(unitPrice(stats.mostValuable) * stats.mostValuable.quantity)
                 : "—"
             }
             hint={stats.mostValuable?.product.name}

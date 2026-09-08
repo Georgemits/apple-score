@@ -3,10 +3,11 @@
 import * as React from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import type { InventoryItem } from "@/lib/queries";
-import { removeProductAction, setQuantityAction } from "@/actions/products";
+import { removeProductAction, setQuantityAction, updateOwnedItemAction } from "@/actions/products";
 import { useScoreAction } from "@/hooks/use-score-action";
 import { CATEGORY_LABEL } from "@/lib/categories";
-import { MAX_QUANTITY } from "@/lib/validations";
+import { MAX_QUANTITY, MAX_PRICE_PAID } from "@/lib/validations";
+import { hasCustomPrice, legacyBonus, lineTotal, unitPrice } from "@/lib/score";
 import { formatNumber, formatUSD } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { ProductImage } from "@/components/product-image";
 import { QuantityStepper } from "@/components/quantity-stepper";
+import { LegacyBadge } from "@/components/legacy-badge";
 
 export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: number }) {
   const { product, quantity } = item;
@@ -41,12 +43,29 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
   const [editOpen, setEditOpen] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [draftQuantity, setDraftQuantity] = React.useState(quantity);
+  // "" means "no override" — fall back to MSRP.
+  const [draftPrice, setDraftPrice] = React.useState("");
 
   React.useEffect(() => {
-    if (editOpen) setDraftQuantity(quantity);
-  }, [editOpen, quantity]);
+    if (!editOpen) return;
+    setDraftQuantity(quantity);
+    setDraftPrice(item.pricePaidUSD === null ? "" : String(item.pricePaidUSD));
+  }, [editOpen, quantity, item.pricePaidUSD]);
 
-  const lineTotal = product.priceUSD * quantity;
+  const total = lineTotal(item);
+  const bonus = legacyBonus(item);
+  const custom = hasCustomPrice(item);
+
+  const draftPricePaid = draftPrice.trim() === "" ? null : Number.parseInt(draftPrice, 10);
+  const draftUnit = draftPricePaid ?? product.priceUSD;
+  const draftTotal = lineTotal({
+    quantity: Math.max(draftQuantity, 0),
+    pricePaidUSD: draftPricePaid,
+    product,
+  });
+  const draftPriceInvalid =
+    draftPrice.trim() !== "" &&
+    (Number.isNaN(draftPricePaid) || draftPricePaid! < 0 || draftPricePaid! > MAX_PRICE_PAID);
 
   // The stepper only ever removes single units; dropping to zero always goes
   // through the confirmation dialog below.
@@ -64,26 +83,29 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
   };
 
   const saveEdit = () => {
+    if (draftPriceInvalid) return;
     setEditOpen(false);
-
-    if (draftQuantity === quantity) return;
 
     if (draftQuantity < 1) {
       setConfirmOpen(true);
       return;
     }
 
+    if (draftQuantity === quantity && draftPricePaid === item.pricePaidUSD) return;
+
     run(
-      () => setQuantityAction({ productId: product.id, quantity: draftQuantity }),
-      `${product.name} set to ${draftQuantity}.`
+      () =>
+        updateOwnedItemAction({
+          productId: product.id,
+          quantity: draftQuantity,
+          pricePaidUSD: draftPricePaid,
+        }),
+      `${product.name} updated.`
     );
   };
 
   return (
-    <li
-      className="animate-enter-up"
-      style={{ animationDelay: `${Math.min(index * 30, 240)}ms` }}
-    >
+    <li className="animate-enter-up" style={{ animationDelay: `${Math.min(index * 30, 240)}ms` }}>
       <Card className="flex h-full flex-col gap-4 p-5" aria-busy={isPending}>
         <div className="flex items-start gap-4">
           <ProductImage
@@ -98,10 +120,20 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
             </h3>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
               <Badge variant="outline">{CATEGORY_LABEL[product.category]}</Badge>
-              <span className="tabular text-sm text-muted-foreground">
-                {formatUSD(product.priceUSD)} MSRP
-              </span>
+              {product.legacy && <LegacyBadge />}
             </div>
+            <p className="tabular mt-1.5 text-sm text-muted-foreground">
+              {custom ? (
+                <>
+                  <span className="font-medium text-foreground">
+                    {formatUSD(unitPrice(item))} paid
+                  </span>{" "}
+                  <span className="line-through">{formatUSD(product.priceUSD)}</span>
+                </>
+              ) : (
+                <>{formatUSD(product.priceUSD)} MSRP</>
+              )}
+            </p>
           </div>
         </div>
 
@@ -116,7 +148,12 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
           />
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Subtotal</p>
-            <p className="tabular font-semibold">{formatNumber(lineTotal)} pts</p>
+            <p className="tabular font-semibold">{formatNumber(total)} pts</p>
+            {bonus > 0 && (
+              <p className="tabular text-xs text-amber-600 dark:text-amber-400">
+                incl. +{formatNumber(bonus)} legacy
+              </p>
+            )}
           </div>
         </div>
 
@@ -129,7 +166,7 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
             disabled={isPending}
           >
             <Pencil aria-hidden="true" />
-            Edit quantity
+            Edit
           </Button>
 
           <Button
@@ -148,38 +185,73 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit quantity</DialogTitle>
+            <DialogTitle>Edit {product.name}</DialogTitle>
             <DialogDescription>
-              How many {product.name} do you own? Set it to 0 to remove it entirely.
+              Change how many you own, or record what you actually paid if you bought it
+              second-hand.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
-            <Label htmlFor={`quantity-${product.id}`}>Quantity</Label>
-            <Input
-              id={`quantity-${product.id}`}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={MAX_QUANTITY}
-              value={draftQuantity}
-              onChange={(event) => {
-                const next = Number.parseInt(event.target.value, 10);
-                setDraftQuantity(
-                  Number.isNaN(next) ? 0 : Math.min(Math.max(next, 0), MAX_QUANTITY)
-                );
-              }}
-            />
-            <p className="tabular text-sm text-muted-foreground">
-              New subtotal: {formatNumber(product.priceUSD * Math.max(draftQuantity, 0))} pts
-            </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor={`quantity-${product.id}`}>Quantity</Label>
+              <Input
+                id={`quantity-${product.id}`}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={MAX_QUANTITY}
+                value={draftQuantity}
+                onChange={(event) => {
+                  const next = Number.parseInt(event.target.value, 10);
+                  setDraftQuantity(
+                    Number.isNaN(next) ? 0 : Math.min(Math.max(next, 0), MAX_QUANTITY)
+                  );
+                }}
+              />
+              <p className="text-xs text-muted-foreground">Set to 0 to remove it entirely.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`price-${product.id}`}>Price paid, per unit (USD)</Label>
+              <Input
+                id={`price-${product.id}`}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={MAX_PRICE_PAID}
+                placeholder={String(product.priceUSD)}
+                value={draftPrice}
+                aria-invalid={draftPriceInvalid}
+                aria-describedby={`price-hint-${product.id}`}
+                onChange={(event) => setDraftPrice(event.target.value)}
+              />
+              <p id={`price-hint-${product.id}`} className="text-xs text-muted-foreground">
+                {draftPriceInvalid
+                  ? `Enter a whole number between 0 and ${formatNumber(MAX_PRICE_PAID)}.`
+                  : `Leave blank to use the ${formatUSD(product.priceUSD)} MSRP.`}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-secondary/60 px-4 py-3">
+              <p className="tabular text-sm">
+                New subtotal:{" "}
+                <span className="font-semibold">{formatNumber(draftTotal)} pts</span>
+              </p>
+              <p className="tabular mt-0.5 text-xs text-muted-foreground">
+                {formatUSD(draftUnit)} × {Math.max(draftQuantity, 0)}
+                {product.legacy && " · +10% legacy bonus"}
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={saveEdit}>Save</Button>
+            <Button onClick={saveEdit} disabled={draftPriceInvalid}>
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -190,7 +262,7 @@ export function ProductCard({ item, index = 0 }: { item: InventoryItem; index?: 
             <AlertDialogTitle>Remove {product.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               This removes all {quantity} {quantity === 1 ? "unit" : "units"} and lowers your Apple
-              Score by {formatNumber(lineTotal)} points.
+              Score by {formatNumber(total)} points.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

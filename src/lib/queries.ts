@@ -1,9 +1,28 @@
 import "server-only";
 
 import { cache } from "react";
-import type { Category, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { Category } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { breakdownByCategory, calculateScore, countProducts } from "@/lib/score";
+import {
+  LEGACY_BONUS,
+  breakdownByCategory,
+  calculateScore,
+  countProducts,
+  lineTotal,
+} from "@/lib/score";
+
+/**
+ * The scoring formula from `lib/score.ts`, expressed in SQL for the aggregate
+ * queries below. The multiplier is derived from LEGACY_BONUS so the two cannot
+ * drift, and is emitted as a numeric literal (not a bound parameter) so
+ * Postgres uses exact decimal arithmetic. ROUND() there and Math.round() here
+ * agree because every value is positive.
+ */
+const LINE_TOTAL_SQL = Prisma.sql`ROUND(
+  COALESCE(up."pricePaidUSD", p."priceUSD") * up."quantity"
+  * CASE WHEN p."legacy" THEN ${Prisma.raw((1 + LEGACY_BONUS).toFixed(2))} ELSE 1 END
+)`;
 
 export type InventoryItem = Prisma.UserProductGetPayload<{ include: { product: true } }>;
 
@@ -30,9 +49,7 @@ export function summarize(items: readonly InventoryItem[]): UserStats {
   const mostValuable =
     items.length === 0
       ? null
-      : items.reduce((best, item) =>
-          item.product.priceUSD * item.quantity > best.product.priceUSD * best.quantity ? item : best
-        );
+      : items.reduce((best, item) => (lineTotal(item) > lineTotal(best) ? item : best));
 
   return {
     score: calculateScore(items),
@@ -99,9 +116,9 @@ export async function getLeaderboard(): Promise<Leaderboard> {
         u."id",
         u."username",
         u."createdAt",
-        COALESCE(SUM(p."priceUSD" * up."quantity"), 0)::int AS "score",
-        COALESCE(SUM(up."quantity"), 0)::int            AS "productCount",
-        COUNT(up."id")::int                              AS "distinctProducts"
+        COALESCE(SUM(${LINE_TOTAL_SQL}), 0)::int AS "score",
+        COALESCE(SUM(up."quantity"), 0)::int     AS "productCount",
+        COUNT(up."id")::int                       AS "distinctProducts"
       FROM "User" u
       LEFT JOIN "UserProduct" up ON up."userId" = u."id" AND up."quantity" > 0
       LEFT JOIN "Product" p ON p."id" = up."productId"
@@ -171,7 +188,7 @@ export async function getUserRank(userId: string): Promise<RankSummary | null> {
     WITH scores AS (
       SELECT
         u."id",
-        COALESCE(SUM(p."priceUSD" * up."quantity"), 0)::int AS "score"
+        COALESCE(SUM(${LINE_TOTAL_SQL}), 0)::int AS "score"
       FROM "User" u
       LEFT JOIN "UserProduct" up ON up."userId" = u."id" AND up."quantity" > 0
       LEFT JOIN "Product" p ON p."id" = up."productId"
