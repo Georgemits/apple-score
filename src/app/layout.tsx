@@ -12,7 +12,7 @@ import type { NavUser } from "@/components/site-nav";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
-export const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 const description =
   "Apple Score is the total you've spent on Apple hardware. Track your collection, climb the leaderboard and unlock achievements.";

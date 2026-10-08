@@ -30,9 +30,10 @@ export function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallback = searchParams.get("callbackUrl");
-  // New accounts go through the welcome flow unless they were sent here from a
-  // specific (same-origin) page.
-  const destination = safeCallbackUrl(rawCallback, "/welcome");
+  // New accounts always go through the welcome flow: it is the fastest way to a
+  // score, and the page they came from is one tap away afterwards. The
+  // callback is only kept for the "already have an account" link.
+  const destination = "/welcome";
   const loginHref = rawCallback
     ? `/login?callbackUrl=${encodeURIComponent(safeCallbackUrl(rawCallback))}`
     : "/login";
