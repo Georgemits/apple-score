@@ -108,6 +108,18 @@ export const deleteAccountSchema = z.object({
 export const MAX_DISPLAY_NAME = 40;
 export const MAX_BIO = 160;
 
+function graphemeCount(value: string): number {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(value)].length;
+  }
+  return [...value].length;
+}
+
+/** True for exactly one emoji grapheme (skin tones and ZWJ sequences included). */
+export function isSingleEmoji(value: string): boolean {
+  return EMOJI_PATTERN.test(value) && graphemeCount(value) === 1;
+}
+
 /** A single emoji (one extended grapheme cluster that is an emoji). */
 const EMOJI_PATTERN =
   /^\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*$/u;
@@ -128,8 +140,10 @@ export const profileSchema = z.object({
   avatarEmoji: z
     .string()
     .trim()
+    // The longest real emoji sequences (tag-sequence flags) are 14 UTF-16 units.
+    .max(24, "Pick a single emoji.")
     .transform((value) => (value === "" ? null : value))
-    .refine((value) => value === null || EMOJI_PATTERN.test(value), {
+    .refine((value) => value === null || isSingleEmoji(value), {
       message: "Pick a single emoji.",
     }),
   avatarHue: z.union([
@@ -265,7 +279,11 @@ export const changePasswordFormSchema = z
 export const profileFormSchema = z.object({
   displayName: z.string().trim().max(MAX_DISPLAY_NAME, `At most ${MAX_DISPLAY_NAME} characters.`),
   bio: z.string().trim().max(MAX_BIO, `At most ${MAX_BIO} characters.`),
-  avatarEmoji: z.string().trim(),
+  avatarEmoji: z
+    .string()
+    .trim()
+    .max(24, "Pick a single emoji.")
+    .refine((value) => value === "" || isSingleEmoji(value), { message: "Pick a single emoji." }),
   avatarHue: z.number().int().min(0).max(359).nullable(),
   isPublic: z.boolean(),
 });

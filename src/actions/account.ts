@@ -2,8 +2,9 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import bcrypt from "bcryptjs";
-import { auth, signOut } from "@/auth";
+import { auth, signOut, updateSession } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { rateLimit, retryMessage } from "@/lib/rate-limit";
 import { changePasswordSchema, deleteAccountSchema, profileSchema } from "@/lib/validations";
 import { failure, type ActionResult } from "@/actions/types";
 
@@ -56,6 +57,10 @@ export async function changePasswordAction(input: unknown): Promise<ActionResult
   });
   if (!user) return failure("Account not found.");
 
+  // A live session must not be able to brute-force the real password.
+  const limited = await rateLimit(`password:user:${me.userId}`, 5, 15 * 60);
+  if (!limited.ok) return failure(retryMessage(limited));
+
   const valid = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
   if (!valid) {
     return failure("Your current password is incorrect.", {
@@ -64,7 +69,16 @@ export async function changePasswordAction(input: unknown): Promise<ActionResult
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, BCRYPT_ROUNDS);
-  await prisma.user.update({ where: { id: me.userId }, data: { passwordHash } });
+  // Bumping the version signs out every other device; this session is
+  // updated in place so the owner stays signed in.
+  const updated = await prisma.user.update({
+    where: { id: me.userId },
+    data: { passwordHash, sessionVersion: { increment: 1 } },
+    select: { sessionVersion: true },
+  });
+  await updateSession({ sessionVersion: updated.sessionVersion } as unknown as Parameters<
+    typeof updateSession
+  >[0]);
 
   return { ok: true };
 }
@@ -87,6 +101,9 @@ export async function deleteAccountAction(input: unknown): Promise<ActionResult>
     select: { passwordHash: true },
   });
   if (!user) return failure("Account not found.");
+
+  const limited = await rateLimit(`password:user:${me.userId}`, 5, 15 * 60);
+  if (!limited.ok) return failure(retryMessage(limited));
 
   const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
   if (!valid) return failure("Incorrect password.", { password: ["Incorrect password."] });

@@ -10,6 +10,8 @@ declare module "next-auth" {
 
   interface User {
     username: string;
+    /** Mirrors `User.sessionVersion`; a mismatch invalidates the session. */
+    sessionVersion: number;
   }
 }
 
@@ -22,6 +24,9 @@ declare module "@auth/core/jwt" {
   interface JWT {
     id: string;
     username: string;
+    sessionVersion: number;
+    /** Epoch ms of the last database check of `sessionVersion`. */
+    verifiedAt?: number;
   }
 }
 

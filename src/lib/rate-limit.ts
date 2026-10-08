@@ -18,6 +18,7 @@ export type RateLimitResult = {
 
 type Row = { count: number; resetAt: Date };
 
+/** Records one attempt against `key` and reports whether it is still allowed. */
 export async function rateLimit(
   key: string,
   limit: number,
@@ -64,12 +65,45 @@ export async function rateLimit(
   }
 }
 
-/** Best-effort client address for keying limits. Falls back to a shared bucket. */
-export async function clientAddress(): Promise<string> {
+/**
+ * Reports the state of a bucket without counting an attempt — used to refuse
+ * a sign-in up front while only *failed* sign-ins consume the budget.
+ */
+export async function peekRateLimit(key: string, limit: number): Promise<RateLimitResult> {
+  try {
+    const row = await prisma.rateLimit.findUnique({ where: { key } });
+    if (!row || row.resetAt.getTime() <= Date.now()) {
+      return { ok: true, remaining: limit, retryAfterSeconds: 0 };
+    }
+    const retryAfterSeconds = Math.max(0, Math.ceil((row.resetAt.getTime() - Date.now()) / 1000));
+    return { ok: row.count < limit, remaining: Math.max(0, limit - row.count), retryAfterSeconds };
+  } catch (error) {
+    console.error("peekRateLimit:", error);
+    return { ok: true, remaining: limit, retryAfterSeconds: 0 };
+  }
+}
+
+/**
+ * The client's address as reported by a trusted hop, or null when none is
+ * available. Platform headers come first; otherwise the *last* entry of
+ * `x-forwarded-for` is used, which is the one appended by the proxy in front
+ * of this server rather than whatever the client chose to send.
+ */
+export async function clientAddress(): Promise<string | null> {
   const requestHeaders = await headers();
-  const forwarded = requestHeaders.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first || requestHeaders.get("x-real-ip") || "unknown";
+
+  const platform =
+    requestHeaders.get("x-vercel-forwarded-for") ??
+    requestHeaders.get("cf-connecting-ip") ??
+    requestHeaders.get("x-real-ip");
+  if (platform) return platform.split(",")[0]?.trim() || null;
+
+  const forwarded = requestHeaders
+    .get("x-forwarded-for")
+    ?.split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return forwarded?.at(-1) ?? null;
 }
 
 export function retryMessage(result: RateLimitResult): string {

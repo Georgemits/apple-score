@@ -5,17 +5,23 @@ import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { clientAddress, rateLimit, retryMessage } from "@/lib/rate-limit";
+import { clientAddress, peekRateLimit, rateLimit, retryMessage } from "@/lib/rate-limit";
 import { loginSchema, signupSchema, type LoginInput, type SignupInput } from "@/lib/validations";
 import { failure, type ActionResult } from "@/actions/types";
 
 const BCRYPT_ROUNDS = 12;
 
-/** Attempts allowed per window before an address or account is paused. */
+/**
+ * Attempts allowed per window. Sign-in buckets only count *failed* attempts,
+ * so a legitimate owner cannot be locked out by their own successful logins,
+ * and a remote attacker needs the victim's address to exhaust the per-address
+ * bucket; the wider per-account bucket caps spraying from many addresses.
+ */
 const LIMITS = {
   signupPerAddress: { limit: 5, windowSeconds: 60 * 60 },
   loginPerAddress: { limit: 30, windowSeconds: 15 * 60 },
-  loginPerAccount: { limit: 10, windowSeconds: 15 * 60 },
+  loginPerAccountAndAddress: { limit: 10, windowSeconds: 15 * 60 },
+  loginPerAccount: { limit: 40, windowSeconds: 15 * 60 },
 } as const;
 
 export async function signupAction(input: SignupInput): Promise<ActionResult> {
@@ -25,12 +31,14 @@ export async function signupAction(input: SignupInput): Promise<ActionResult> {
   }
 
   const address = await clientAddress();
-  const limited = await rateLimit(
-    `signup:ip:${address}`,
-    LIMITS.signupPerAddress.limit,
-    LIMITS.signupPerAddress.windowSeconds
-  );
-  if (!limited.ok) return failure(retryMessage(limited));
+  if (address) {
+    const limited = await rateLimit(
+      `signup:ip:${address}`,
+      LIMITS.signupPerAddress.limit,
+      LIMITS.signupPerAddress.windowSeconds
+    );
+    if (!limited.ok) return failure(retryMessage(limited));
+  }
 
   const { username, email, password } = parsed.data;
 
@@ -82,29 +90,33 @@ export async function loginAction(input: LoginInput): Promise<ActionResult> {
     return failure("Please fix the highlighted fields.", parsed.error.flatten().fieldErrors);
   }
 
+  const { email } = parsed.data;
   const address = await clientAddress();
-  const [byAddress, byAccount] = await Promise.all([
-    rateLimit(
-      `login:ip:${address}`,
-      LIMITS.loginPerAddress.limit,
-      LIMITS.loginPerAddress.windowSeconds
-    ),
-    rateLimit(
-      `login:email:${parsed.data.email}`,
-      LIMITS.loginPerAccount.limit,
-      LIMITS.loginPerAccount.windowSeconds
-    ),
-  ]);
-  if (!byAddress.ok) return failure(retryMessage(byAddress));
-  if (!byAccount.ok) return failure(retryMessage(byAccount));
+
+  const buckets = [
+    address ? { key: `login:ip:${address}`, ...LIMITS.loginPerAddress } : null,
+    address ? { key: `login:acct:${email}:${address}`, ...LIMITS.loginPerAccountAndAddress } : null,
+    { key: `login:acct:${email}`, ...LIMITS.loginPerAccount },
+  ].filter((bucket): bucket is NonNullable<typeof bucket> => bucket !== null);
+
+  // Refuse up front when a bucket is already exhausted…
+  for (const bucket of buckets) {
+    const state = await peekRateLimit(bucket.key, bucket.limit);
+    if (!state.ok) return failure(retryMessage(state));
+  }
 
   try {
     await signIn("credentials", { ...parsed.data, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
-      return error.type === "CredentialsSignin"
-        ? failure("Incorrect email or password.")
-        : failure("Could not sign you in. Please try again.");
+      if (error.type === "CredentialsSignin") {
+        // …and only failed attempts spend the budget.
+        await Promise.all(
+          buckets.map((bucket) => rateLimit(bucket.key, bucket.limit, bucket.windowSeconds))
+        );
+        return failure("Incorrect email or password.");
+      }
+      return failure("Could not sign you in. Please try again.");
     }
     throw error;
   }

@@ -40,7 +40,7 @@ function first(value: string | string[] | undefined): string {
 /** `?page=` as a positive integer; anything odd lands on page 1. */
 function parsePage(value: string): number {
   const page = Number.parseInt(value, 10);
-  return Number.isFinite(page) && page >= 1 ? page : 1;
+  return Number.isSafeInteger(page) && page >= 1 ? Math.min(page, 100_000) : 1;
 }
 
 export default async function LeaderboardPage({ searchParams }: PageProps) {

@@ -169,6 +169,8 @@ type RawRow = Omit<BoardRow, "isTop" | "isBottom" | "movement"> & {
 };
 
 const PAGE_SIZE = 50;
+/** Hard ceiling on `?page=` so a hand-edited URL cannot produce an absurd OFFSET. */
+const MAX_PAGE = 100_000;
 
 function boardQuery(board: BoardDefinition, viewerId: string | null): Prisma.Sql {
   const productFilter = board.filter.category
@@ -304,7 +306,8 @@ export async function getBoardPage(
 ): Promise<BoardPage> {
   const board = getBoardDefinition(key);
   const viewerId = options.viewerId ?? null;
-  const page = Math.max(1, Math.floor(options.page ?? 1));
+  const requested = Number.isSafeInteger(options.page) ? (options.page as number) : 1;
+  const page = Math.min(MAX_PAGE, Math.max(1, requested));
   const offset = (page - 1) * PAGE_SIZE;
 
   if (board.requiresViewer && !viewerId) {

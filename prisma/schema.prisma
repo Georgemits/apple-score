@@ -60,6 +60,8 @@ model User {
   isPublic     Boolean  @default(true)
   /// Set once the welcome flow has been completed or skipped.
   onboardedAt  DateTime?
+  /// Bumped on password change; sessions carrying an older value are rejected.
+  sessionVersion Int    @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

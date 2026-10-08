@@ -34,6 +34,8 @@ import { TEST_PREFIX, deleteTestUsers } from "./helpers";
 describe("sign up", () => {
   beforeAll(async () => {
     await deleteTestUsers();
+    // Earlier runs within the window must not exhaust the per-address buckets.
+    await prisma.rateLimit.deleteMany({ where: { key: { contains: "127.0.0.1" } } });
   });
 
   afterAll(async () => {
@@ -110,8 +112,16 @@ describe("log in", () => {
     if (!result.ok) expect(result.error).toMatch(/incorrect/i);
   });
 
-  it("rate limits repeated attempts on one account", async () => {
+  it("locks an account after repeated failed attempts, but never counts successes", async () => {
     const email = `limited-${Date.now().toString(36)}@test.example`;
+
+    // Successful sign-ins never consume the budget.
+    signInCalls.fail = false;
+    for (let attempt = 0; attempt < 15; attempt += 1) {
+      expect((await loginAction({ email, password: "x" })).ok).toBe(true);
+    }
+
+    signInCalls.fail = true;
     let blocked = false;
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const result = await loginAction({ email, password: "x" });
@@ -120,6 +130,7 @@ describe("log in", () => {
         break;
       }
     }
+    signInCalls.fail = false;
     expect(blocked).toBe(true);
   });
 });
