@@ -5,20 +5,24 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ScoreUpdate } from "@/actions/products";
 import type { ActionResult } from "@/actions/types";
-import { celebrate } from "@/components/confetti";
-import { formatNumber } from "@/lib/utils";
+import { celebrateUpdate } from "@/components/celebrations";
+import { formatSignedUSD, formatUSD } from "@/lib/utils";
 
 /**
- * Runs an inventory server action, then surfaces the result: a toast, confetti
- * when a milestone is crossed, and a refresh so every server-rendered score on
- * the page (home, profile, leaderboard) picks up the new total.
+ * Runs an inventory server action, then surfaces the result: a toast with the
+ * score change, celebrations for milestones and achievements, and a refresh so
+ * every server-rendered score on the page picks up the new total.
  */
 export function useScoreAction() {
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
 
   const run = React.useCallback(
-    (action: () => Promise<ActionResult<ScoreUpdate>>, successMessage?: string) => {
+    (
+      action: () => Promise<ActionResult<ScoreUpdate>>,
+      successMessage?: string,
+      onSuccess?: (update: ScoreUpdate) => void
+    ) => {
       startTransition(async () => {
         try {
           const result = await action();
@@ -28,13 +32,17 @@ export function useScoreAction() {
             return;
           }
 
-          if (successMessage) toast.success(successMessage);
-
-          if (result.data.milestone !== null) {
-            void celebrate();
-            toast.success(`Milestone unlocked: ${formatNumber(result.data.milestone)} Apple Points`);
+          if (successMessage) {
+            toast.success(successMessage, {
+              description:
+                result.data.delta === 0
+                  ? undefined
+                  : `${formatSignedUSD(result.data.delta)} · Apple Score ${formatUSD(result.data.score)}`,
+            });
           }
 
+          celebrateUpdate(result.data);
+          onSuccess?.(result.data);
           router.refresh();
         } catch (error) {
           console.error(error);

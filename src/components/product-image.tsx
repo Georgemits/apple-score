@@ -15,13 +15,7 @@ type ProductImageProps = {
  * line art, so a plain <img> is used rather than next/image — no remote hosts,
  * no layout-shift risk and no SVG allowlisting required.
  */
-export function ProductImage({
-  src,
-  alt,
-  category,
-  className,
-  imageClassName,
-}: ProductImageProps) {
+export function ProductImage({ src, alt, category, className, imageClassName }: ProductImageProps) {
   return (
     <span
       className={cn(

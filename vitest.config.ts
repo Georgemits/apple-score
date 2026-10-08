@@ -17,6 +17,8 @@ const alias = {
 
 export default defineConfig({
   test: {
+    // Integration suites share one database, so files run one at a time.
+    fileParallelism: false,
     projects: [
       {
         extends: true,
@@ -35,7 +37,6 @@ export default defineConfig({
           environment: "node",
           include: ["tests/integration/**/*.test.ts"],
           setupFiles: ["tests/integration/setup.ts"],
-          fileParallelism: false,
           sequence: { concurrent: false },
           testTimeout: 30_000,
           hookTimeout: 60_000,

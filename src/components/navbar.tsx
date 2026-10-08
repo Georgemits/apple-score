@@ -1,11 +1,5 @@
-import { auth } from "@/auth";
-import { SiteNav } from "@/components/site-nav";
+import { SiteNav, type NavUser } from "@/components/site-nav";
 
-export async function Navbar() {
-  const session = await auth();
-  const user = session?.user
-    ? { username: session.user.username, email: session.user.email ?? "" }
-    : null;
-
+export function Navbar({ user }: { user: NavUser }) {
   return <SiteNav user={user} />;
 }

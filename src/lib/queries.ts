@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
-import { Prisma, type Category } from "@prisma/client";
+import type { Prisma, Category } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   breakdownByCategory,
@@ -84,7 +84,9 @@ export function summarize(items: readonly InventoryItem[]): UserStats {
     averageUnitPrice: productCount === 0 ? 0 : Math.round(score / productCount),
     oldest,
     newest,
-    legacyUnits: items.filter((item) => item.product.legacy).reduce((n, item) => n + item.quantity, 0),
+    legacyUnits: items
+      .filter((item) => item.product.legacy)
+      .reduce((n, item) => n + item.quantity, 0),
     familyCount: new Set(items.map((item) => item.product.family)).size,
     tier: tierFor(score),
   };
@@ -104,7 +106,7 @@ export type CatalogueProduct = Prisma.ProductGetPayload<Record<string, never>>;
  * The full product catalogue. Small and static — cached for a minute and
  * tagged so the seed/admin flows can bust it with `revalidateTag("catalogue")`.
  */
-export const getCatalogue = unstable_cache(
+const getCachedCatalogue = unstable_cache(
   async (): Promise<CatalogueProduct[]> =>
     prisma.product.findMany({
       orderBy: [{ year: "desc" }, { priceUSD: "desc" }, { name: "asc" }],
@@ -113,9 +115,28 @@ export const getCatalogue = unstable_cache(
   { revalidate: 60, tags: ["catalogue"] }
 );
 
+export async function getCatalogue(): Promise<CatalogueProduct[]> {
+  // The cache round-trips through JSON, which turns Dates into strings.
+  const rows = await getCachedCatalogue();
+  return rows.map((row) => ({ ...row, createdAt: new Date(row.createdAt) }));
+}
+
 export const getProductBySlug = cache(async (slug: string) =>
   prisma.product.findUnique({ where: { slug } })
 );
+
+export type ProductOwner = PublicUser & { quantity: number };
+
+/** Public collectors who own a product, most units first. */
+export async function getProductOwners(productId: string, take = 6): Promise<ProductOwner[]> {
+  const rows = await prisma.userProduct.findMany({
+    where: { productId, quantity: { gt: 0 }, user: { isPublic: true } },
+    include: { user: { select: PUBLIC_USER_SELECT } },
+    orderBy: [{ quantity: "desc" }, { createdAt: "asc" }],
+    take,
+  });
+  return rows.map((row) => ({ ...row.user, quantity: row.quantity }));
+}
 
 /** Which catalogue entries a user already owns, and how many. */
 export async function getOwnedQuantities(userId: string): Promise<Record<string, number>> {
@@ -423,7 +444,9 @@ export const getCommunityStats = unstable_cache(
 );
 
 /** Public usernames for the sitemap. */
-export async function getPublicUsernames(take = 5000): Promise<{ username: string; updatedAt: Date }[]> {
+export async function getPublicUsernames(
+  take = 5000
+): Promise<{ username: string; updatedAt: Date }[]> {
   return prisma.user.findMany({
     where: { isPublic: true },
     select: { username: true, updatedAt: true },

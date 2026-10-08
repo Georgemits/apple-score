@@ -1,0 +1,28 @@
+# Local PostgreSQL for development and tests.
+#
+#   docker compose up -d
+#   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/apple_score"
+#   DIRECT_URL="postgresql://postgres:postgres@localhost:5432/apple_score"
+#
+# The `db-init` step creates a second database for the integration/E2E suites.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: apple_score
+    ports:
+      - "5432:5432"
+    volumes:
+      - apple-score-pg:/var/lib/postgresql/data
+      - ./scripts/create-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  apple-score-pg:

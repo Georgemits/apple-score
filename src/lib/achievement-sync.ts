@@ -55,7 +55,9 @@ export async function syncAchievements(
   });
   const have = new Set(existing.map((row) => row.achievementId));
 
-  const fresh = ACHIEVEMENTS.filter((definition) => earned.has(definition.id) && !have.has(definition.id));
+  const fresh = ACHIEVEMENTS.filter(
+    (definition) => earned.has(definition.id) && !have.has(definition.id)
+  );
   if (fresh.length === 0) return [];
 
   await prisma.userAchievement.createMany({

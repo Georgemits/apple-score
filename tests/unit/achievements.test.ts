@@ -8,7 +8,10 @@ import {
 } from "@/lib/achievements";
 import { breakdownByCategory, calculateScore, countProducts } from "@/lib/score";
 
-type Spec = Partial<AchievementItem["product"]> & { quantity?: number; pricePaidUSD?: number | null };
+type Spec = Partial<AchievementItem["product"]> & {
+  quantity?: number;
+  pricePaidUSD?: number | null;
+};
 
 function make(spec: Spec): AchievementItem {
   return {
@@ -26,7 +29,10 @@ function make(spec: Spec): AchievementItem {
   };
 }
 
-function context(items: AchievementItem[], extra: Partial<AchievementContext> = {}): AchievementContext {
+function context(
+  items: AchievementItem[],
+  extra: Partial<AchievementContext> = {}
+): AchievementContext {
   return {
     score: calculateScore(items),
     productCount: countProducts(items),
@@ -80,10 +86,21 @@ describe("score milestones", () => {
 describe("collection achievements", () => {
   it("counts iPhones, Macs and category spread", () => {
     const items = [
-      make({ category: "IPHONE", family: "iPhone Pro", name: "iPhone 17 Pro Max", year: 2025, quantity: 2 }),
+      make({
+        category: "IPHONE",
+        family: "iPhone Pro",
+        name: "iPhone 17 Pro Max",
+        year: 2025,
+        quantity: 2,
+      }),
       make({ category: "IPHONE", family: "iPhone", name: "iPhone 11", year: 2019 }),
       make({ category: "MAC", family: "MacBook Pro", name: 'MacBook Pro 14" (M4)' }),
-      make({ category: "MAC", family: "Mac Studio", name: "Mac Studio (M3 Ultra)", priceUSD: 3_999 }),
+      make({
+        category: "MAC",
+        family: "Mac Studio",
+        name: "Mac Studio (M3 Ultra)",
+        priceUSD: 3_999,
+      }),
       make({ category: "WATCH", family: "Apple Watch Ultra", name: "Apple Watch Ultra 3" }),
       make({ category: "AIRPODS", family: "AirPods Pro", name: "AirPods Pro 3", quantity: 3 }),
       make({ category: "IPAD", family: "iPad Pro", name: 'iPad Pro 13" (M4)' }),
@@ -106,7 +123,13 @@ describe("collection achievements", () => {
   it("recognises vintage hardware", () => {
     const ids = unlockedIds(
       context([
-        make({ slug: "iphone-1st-gen", category: "IPHONE", family: "iPhone", year: 2007, legacy: true }),
+        make({
+          slug: "iphone-1st-gen",
+          category: "IPHONE",
+          family: "iPhone",
+          year: 2007,
+          legacy: true,
+        }),
         make({ slug: "ipod-mini", category: "IPOD", family: "iPod", year: 2004, legacy: true }),
       ])
     );
@@ -117,7 +140,9 @@ describe("collection achievements", () => {
   });
 
   it("rewards recorded bargains", () => {
-    const bargains = [1, 2, 3].map((n) => make({ slug: `b${n}`, priceUSD: 500, pricePaidUSD: 300 }));
+    const bargains = [1, 2, 3].map((n) =>
+      make({ slug: `b${n}`, priceUSD: 500, pricePaidUSD: 300 })
+    );
     expect(unlockedIds(context(bargains))).toContain("bargain-hunter");
     expect(unlockedIds(context(bargains.slice(0, 2)))).not.toContain("bargain-hunter");
   });

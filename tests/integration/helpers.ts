@@ -32,11 +32,17 @@ export async function deleteTestUsers() {
 
 export async function product(slug: string) {
   const row = await prisma.product.findUnique({ where: { slug } });
-  if (!row) throw new Error(`Catalogue is not seeded: missing product "${slug}". Run \`npm run db:seed\`.`);
+  if (!row)
+    throw new Error(`Catalogue is not seeded: missing product "${slug}". Run \`npm run db:seed\`.`);
   return row;
 }
 
-export async function own(userId: string, slug: string, quantity = 1, pricePaidUSD: number | null = null) {
+export async function own(
+  userId: string,
+  slug: string,
+  quantity = 1,
+  pricePaidUSD: number | null = null
+) {
   const row = await product(slug);
   await prisma.userProduct.upsert({
     where: { userId_productId: { userId, productId: row.id } },

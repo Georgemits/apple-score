@@ -2,19 +2,29 @@
 
 import * as React from "react";
 import { animate, useReducedMotion } from "framer-motion";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, formatUSD } from "@/lib/utils";
 
 type AnimatedNumberProps = {
   value: number;
   duration?: number;
   className?: string;
+  /** How to print the number. Defaults to a plain thousands-separated integer. */
+  format?: (value: number) => string;
+  /** Start from zero on first render (for hero figures) instead of snapping. */
+  fromZero?: boolean;
 };
 
 /** Counts from the previous value to the next one whenever `value` changes. */
-export function AnimatedNumber({ value, duration = 0.9, className }: AnimatedNumberProps) {
+export function AnimatedNumber({
+  value,
+  duration = 1.1,
+  className,
+  format = formatNumber,
+  fromZero = false,
+}: AnimatedNumberProps) {
   const reduceMotion = useReducedMotion();
-  const [display, setDisplay] = React.useState(value);
-  const previous = React.useRef(value);
+  const [display, setDisplay] = React.useState(fromZero ? 0 : value);
+  const previous = React.useRef(fromZero ? 0 : value);
 
   React.useEffect(() => {
     if (reduceMotion) {
@@ -35,8 +45,13 @@ export function AnimatedNumber({ value, duration = 0.9, className }: AnimatedNum
   }, [value, duration, reduceMotion]);
 
   return (
-    <span className={className} aria-label={formatNumber(value)}>
-      <span aria-hidden="true">{formatNumber(display)}</span>
+    <span className={className} aria-label={format(value)}>
+      <span aria-hidden="true">{format(display)}</span>
     </span>
   );
+}
+
+/** An Apple Score, printed as dollars and counted up when it changes. */
+export function AnimatedMoney(props: Omit<AnimatedNumberProps, "format">) {
+  return <AnimatedNumber {...props} format={formatUSD} />;
 }

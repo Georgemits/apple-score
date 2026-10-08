@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* -------------------------------------------------------------------------
+ * Design tokens
+ *
+ * Light and dark are tuned separately — dark is not an inversion. Surfaces
+ * step up in lightness as they come forward (background → card → popover),
+ * borders are translucent so they read on any wash, and the accent is Apple
+ * blue in both modes with slightly more luminance on dark.
+ * ---------------------------------------------------------------------- */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -16,37 +24,66 @@
     --primary: 240 6% 10%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 5% 96%;
+    --secondary: 240 5% 95%;
     --secondary-foreground: 240 6% 10%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 240 5% 95%;
+    --muted-foreground: 240 4% 44%;
 
     --accent: 211 100% 50%;
     --accent-foreground: 0 0% 100%;
 
+    --success: 142 72% 32%;
+    --warning: 38 92% 45%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
+    --gold: 42 95% 48%;
+    --silver: 220 8% 58%;
+    --bronze: 24 70% 46%;
+
+    --border: 240 6% 88%;
+    --input: 240 6% 86%;
     --ring: 211 100% 50%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
     /* Ambient page wash */
     --wash-1: 211 100% 50%;
     --wash-2: 280 90% 60%;
+    --wash-3: 160 80% 45%;
+
+    --glass-bg: 255 255 255;
+    --glass-alpha: 0.72;
+    --glass-border: 255 255 255;
+    --glass-border-alpha: 0.5;
+
+    /* Chart identity colours, one per category, validated for colour-vision
+       deficiency on the light surface. Dark values below are re-stepped, not
+       inverted. Keep in sync with CATEGORY_CHART_COLOR in lib/categories.ts. */
+    --chart-iphone: #2a78d6;
+    --chart-mac: #eb6834;
+    --chart-ipad: #1baf7a;
+    --chart-watch: #eda100;
+    --chart-airpods: #e87ba4;
+    --chart-vision: #008300;
+    --chart-display: #4a3aa7;
+    --chart-tv-home: #e34948;
+    --chart-accessory: #898781;
+    --chart-ipod: #b5b3ab;
+    --chart-classic: #52514e;
+    --chart-grid: #e1e0d9;
+    --chart-axis: #c3c2b7;
   }
 
   .dark {
     --background: 240 10% 4%;
     --foreground: 0 0% 98%;
 
-    --card: 240 8% 8%;
+    --card: 240 7% 8%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 8% 8%;
+    --popover: 240 7% 9%;
     --popover-foreground: 0 0% 98%;
 
     --primary: 0 0% 98%;
@@ -56,20 +93,46 @@
     --secondary-foreground: 0 0% 98%;
 
     --muted: 240 4% 14%;
-    --muted-foreground: 240 5% 65%;
+    --muted-foreground: 240 5% 66%;
 
-    --accent: 211 100% 55%;
+    --accent: 211 100% 58%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 63% 45%;
+    --success: 142 60% 50%;
+    --warning: 40 90% 60%;
+    --destructive: 0 70% 58%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 4% 18%;
-    --input: 240 4% 20%;
-    --ring: 211 100% 55%;
+    --gold: 44 90% 58%;
+    --silver: 220 10% 72%;
+    --bronze: 26 70% 60%;
+
+    --border: 240 5% 17%;
+    --input: 240 5% 20%;
+    --ring: 211 100% 58%;
 
     --wash-1: 211 100% 45%;
     --wash-2: 280 80% 45%;
+    --wash-3: 160 70% 35%;
+
+    --glass-bg: 255 255 255;
+    --glass-alpha: 0.045;
+    --glass-border: 255 255 255;
+    --glass-border-alpha: 0.09;
+
+    --chart-iphone: #3987e5;
+    --chart-mac: #d95926;
+    --chart-ipad: #199e70;
+    --chart-watch: #c98500;
+    --chart-airpods: #d55181;
+    --chart-vision: #008300;
+    --chart-display: #9085e9;
+    --chart-tv-home: #e66767;
+    --chart-accessory: #898781;
+    --chart-ipod: #5f5e59;
+    --chart-classic: #c3c2b7;
+    --chart-grid: #2c2c2a;
+    --chart-axis: #383835;
   }
 }
 
@@ -80,6 +143,7 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
   }
 
@@ -87,7 +151,9 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings:
       "rlig" 1,
-      "calt" 1;
+      "calt" 1,
+      "ss01" 1;
+    overflow-x: clip;
   }
 
   /* Visible, consistent focus for keyboard users. */
@@ -98,19 +164,59 @@
   ::selection {
     @apply bg-accent/25;
   }
+
+  /* Native number inputs: hide the spinner, the stepper buttons do that job. */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
 }
 
 @layer components {
   /* Frosted panel used across cards, the navbar and dialogs. */
   .glass {
-    @apply border border-white/40 bg-white/70 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl;
+    background-color: rgb(var(--glass-bg) / var(--glass-alpha));
+    border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 12px 32px -12px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
   }
 
   .dark .glass {
-    @apply border-white/10 bg-white/[0.045] shadow-[0_1px_2px_rgba(0,0,0,0.4),0_16px_40px_-16px_rgba(0,0,0,0.8)];
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 16px 40px -16px rgba(0, 0, 0, 0.8);
   }
 
-  /* Soft coloured wash behind hero sections. */
+  /* Subtle hover lift for interactive cards. */
+  .card-hover {
+    @apply transition-[transform,box-shadow] duration-300 ease-out;
+  }
+  @media (hover: hover) {
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.05),
+        0 20px 40px -16px rgba(0, 0, 0, 0.18);
+    }
+    .dark .card-hover:hover {
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.5),
+        0 24px 48px -16px rgba(0, 0, 0, 0.9);
+    }
+  }
+
+  /* Soft coloured wash behind the whole page. */
   .page-wash::before {
     content: "";
     position: fixed;
@@ -119,11 +225,88 @@
     pointer-events: none;
     background:
       radial-gradient(60rem 40rem at 12% -10%, hsl(var(--wash-1) / 0.14), transparent 60%),
-      radial-gradient(50rem 36rem at 92% 4%, hsl(var(--wash-2) / 0.12), transparent 62%);
+      radial-gradient(50rem 36rem at 92% 4%, hsl(var(--wash-2) / 0.12), transparent 62%),
+      radial-gradient(40rem 30rem at 50% 110%, hsl(var(--wash-3) / 0.08), transparent 60%);
   }
 
+  /* Columns of numbers that must align. Not for the hero figure. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* The hero figure: proportional numerals, tight tracking. */
+  .score-figure {
+    font-variant-numeric: proportional-nums;
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  /* Gradient ink for headline accents. */
+  .text-gradient {
+    background: linear-gradient(
+      100deg,
+      hsl(var(--accent)) 0%,
+      hsl(var(--wash-2)) 60%,
+      hsl(var(--wash-3)) 120%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Shimmer sweep for freshly unlocked achievements and skeletons. */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgb(255 255 255 / 0.35) 50%,
+      transparent 70%
+    );
+    transform: translateX(-120%);
+    animation: shine 2.4s ease-in-out 0.4s 2;
+    pointer-events: none;
+  }
+
+  /* Hide scrollbars on horizontal chip rows while keeping them scrollable. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Fade the edges of horizontally scrolling rows. */
+  .fade-x {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 1.25rem,
+      black calc(100% - 1.25rem),
+      transparent
+    );
+  }
+
+  /* Room for the mobile tab bar at the bottom of signed-in pages. */
+  .pb-tabbar {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 768px) {
+    .pb-tabbar {
+      padding-bottom: 0;
+    }
+  }
+}
+
+@keyframes shine {
+  to {
+    transform: translateX(120%);
   }
 }
 

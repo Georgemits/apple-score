@@ -1,371 +1,227 @@
 # 🍎 Apple Score
 
-> Your Apple ecosystem has a score.
+> How much Apple do you own?
 
-Apple Score turns your Apple collection into a single competitive number. Every product you own
-contributes its launch MSRP to your total:
+Apple Score turns your Apple collection into one number: **the total you have
+spent on Apple hardware, in US dollars.**
 
 ```
-Apple Score = Σ ( (price paid ?? MSRP) × quantity × (legacy ? 1.10 : 1) )
+Apple Score = Σ ( price paid ?? launch MSRP ) × quantity
+
+MacBook Pro 16" (M4 Max)   $3,499
+iPhone 17 Pro Max          $1,199  × 2
+AirPods Pro 3                $249
+Apple Watch Ultra 3          $799
+-----------------------------------
+Apple Score               $6,945
 ```
 
-Own two iPhone 17 Pro Max ($1,199 each) and one MacBook Pro 16" M4 Max ($3,499)?
-Your Apple Score is **5,897**.
+Add what you own, watch the score climb, unlock achievements, compare with
+friends, and fight for a spot on **Band for Band** — the global leaderboard.
 
-Legacy hardware earns a 10% premium, and you can override the MSRP with what you actually paid
-if you bought second-hand — a $2,500 second-hand Mac Pro (2019) scores 2,750.
+- **Collection** — a catalogue of 233 Apple products (2025 back to the Apple I)
+  with launch MSRPs; add quantities, record what you actually paid, edit,
+  remove, search, filter, sort, group.
+- **Band for Band** — boards for overall, iPhone, Mac, iPad, Apple Watch,
+  AirPods, Vision, vintage, most products, biggest purchase and the people you
+  follow. Podium, rank movement this week, percentile, the collectors just
+  above and below you.
+- **Achievements** — ~60 of them, from _First Purchase_ to _Apple Billionaire_,
+  _Cheese Grater_ (own a Mac Pro) to _Lost & Found_ (three pairs of the same
+  AirPods), with rarity and "N% of collectors have this".
+- **Profiles & share cards** — public profiles at `/u/<username>` with Open
+  Graph previews, downloadable score cards for Instagram, X, Discord and
+  Messages, and head-to-head compare pages (`/u/you/vs/them`).
+- **Dashboard** — score history chart, spending by category, your standing,
+  recent activity, what's next, quick add.
+- **What-if simulator** — a wishlist that tells you the score and rank each
+  purchase would give you.
+- **Onboarding** — a sixty-second welcome flow that gets a new user on the
+  board with their iPhone, Mac and the rest of the ecosystem.
+- Light / dark / system themes, a mobile tab bar, loading skeletons, playful
+  empty states, confetti where it counts.
 
-Add products, watch your score update instantly, and climb **Band for Band** — the global ranking.
+Apple Score is an unofficial, for-fun project. Not affiliated with Apple Inc.
 
 ---
 
 ## Contents
 
-- [Features](#features)
-- [Tech stack](#tech-stack)
 - [Quick start](#quick-start)
 - [Environment variables](#environment-variables)
-- [Database setup](#database-setup)
-- [Prisma migrations](#prisma-migrations)
-- [Seeding the catalogue](#seeding-the-catalogue)
+- [Database](#database)
 - [Scripts](#scripts)
-- [Project structure](#project-structure)
-- [How the score is calculated](#how-the-score-is-calculated)
-- [Deploying to Vercel](#deploying-to-vercel)
-- [Accessibility](#accessibility)
-- [Disclaimer](#disclaimer)
-
----
-
-## Features
-
-**Core**
-
-- Email + password authentication (sign up, log in, log out) with hashed passwords and JWT sessions
-- A global catalogue of **233 Apple products** with real launch MSRPs, spanning iPhone, Mac, iPad,
-  Watch, AirPods, iPod, Vision, Displays, Apple TV & Home, Accessories and Classic hardware
-- **108 legacy products** — everything from the Apple I and Macintosh 128K through iPods, the
-  original iPhone and Intel Macs — marked with a Legacy badge and worth a **+10% score bonus**
-- **Second-hand pricing**: record what you actually paid per unit and the score follows it,
-  falling back to MSRP when left blank
-- Add products with a quantity, edit quantities, remove one unit or remove a product entirely
-  (with a confirmation dialog)
-- Instant score recalculation on every change — home, profile and Band for Band all stay in sync
-- **Band for Band**, the global ranking by Apple Score, with gold/silver/bronze styling for the top three and
-  your own rank always visible
-- Public profile pages at `/u/<username>` with a shareable link
-
-**Extras**
-
-- 10 achievement badges (Mac Collector, iPhone Enthusiast, Spatial Pioneer, The 1%, …)
-- Confetti when you cross a score milestone (1k / 5k / 10k / 25k / 50k / 100k)
-- Spending-by-category chart and a recent-additions activity feed
-- Band for Band search, catalogue search with instant filtering and category chips
-- A playful 🥲 *Lowest Apple Score* badge for whoever is currently at the bottom
-- Light / dark / system themes, glassmorphic Apple-inspired UI, Framer Motion transitions
-- Loading skeletons, error boundaries, and a fully responsive mobile-first layout
-
-## Tech stack
-
-| Layer      | Choice                                              |
-| ---------- | --------------------------------------------------- |
-| Framework  | Next.js 15 (App Router, Server Actions)             |
-| Language   | TypeScript (strict, `noUncheckedIndexedAccess`)     |
-| Styling    | Tailwind CSS 3 + shadcn/ui (Radix primitives)       |
-| Animation  | Framer Motion                                       |
-| Icons      | Lucide                                              |
-| Database   | PostgreSQL (Supabase or Neon)                       |
-| ORM        | Prisma 6                                            |
-| Auth       | Auth.js / NextAuth v5 (Credentials provider, JWT)   |
-| Validation | Zod + React Hook Form                               |
-| Toasts     | Sonner                                              |
+- [How the score works](#how-the-score-works)
+- [Testing](#testing)
+- [Deploying](#deploying)
+- [Architecture](#architecture)
+- [Adding products](#adding-products)
 
 ## Quick start
 
-**Prerequisites:** Node.js 18.18+ (20 LTS recommended) and a PostgreSQL database.
+**Prerequisites:** Node.js 20+ and PostgreSQL 14+ (local, Docker, Supabase,
+Neon — anything).
 
 ```bash
-git clone <your-repo-url> apple-score
+git clone https://github.com/Georgemits/apple-score.git
 cd apple-score
 npm install
-cp .env.example .env      # then fill in the values — see below
-npx prisma migrate deploy # create the tables
-npm run db:seed           # load the Apple product catalogue
+cp .env.example .env           # fill in DATABASE_URL / DIRECT_URL / AUTH_SECRET
+
+npx prisma migrate deploy      # create the tables
+npm run db:seed                # load the Apple catalogue
+# optional: demo accounts so the leaderboard has company
+SEED_DEMO_USERS=true npm run db:seed
+
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>. Demo accounts (when seeded): `tim`, `steve`,
+`woz`, `jony`, `lisa`, `alex`, `sam`, `morgan`, `riley`, `jamie`, `casey`,
+`taylor` — email `<name>@example.com`, password `applescore123`.
 
-> `npm install` runs `prisma generate` automatically via the `postinstall` script, so the Prisma
-> client is always in sync with `prisma/schema.prisma`.
-
-## Environment variables
-
-Copy `.env.example` to `.env` and fill it in:
-
-| Variable              | Required | Purpose                                                                 |
-| --------------------- | -------- | ----------------------------------------------------------------------- |
-| `DATABASE_URL`        | ✅       | Pooled Postgres connection string used by the app at runtime            |
-| `DIRECT_URL`          | ✅       | Direct (non-pooled) connection string used by `prisma migrate`          |
-| `AUTH_SECRET`         | ✅       | Secret used to sign session JWTs                                        |
-| `AUTH_URL`            | —        | Canonical URL. Optional on Vercel, useful locally                       |
-| `AUTH_TRUST_HOST`     | —        | Set to `true` behind a proxy (Vercel sets this for you)                 |
-| `NEXT_PUBLIC_APP_URL` | —        | Used for metadata and shareable profile links                           |
-
-Generate a secret with:
+### Local Postgres with Docker
 
 ```bash
-openssl rand -base64 32
+docker run -d --name apple-score-db \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=apple_score \
+  -p 5432:5432 postgres:16-alpine
 ```
 
-## Database setup
-
-Any PostgreSQL 14+ database works. Two zero-cost options:
-
-### Local Postgres with Docker (fastest way to run it)
-
-If Docker Desktop is running, one container is enough for local development:
-
-```bash
-docker run -d --name apple-score-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=apple_score -p 5432:5432 postgres:16-alpine
-```
-
-Then point both URLs at it in `.env`:
+Then in `.env`:
 
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/apple_score"
 DIRECT_URL="postgresql://postgres:postgres@localhost:5432/apple_score"
 ```
 
-Stop it with `docker stop apple-score-db`, start it again with
-`docker start apple-score-db`, or remove it entirely with
-`docker rm -f apple-score-db`.
+## Environment variables
 
-### Supabase
+| Variable              | Required | Purpose                                                           |
+| --------------------- | -------- | ----------------------------------------------------------------- |
+| `DATABASE_URL`        | ✅       | Postgres connection used by the app (pooled on Supabase/Neon)     |
+| `DIRECT_URL`          | ✅       | Non-pooled connection used by `prisma migrate`                    |
+| `AUTH_SECRET`         | ✅       | Signs session JWTs — `openssl rand -base64 32`                    |
+| `AUTH_URL`            | —        | Canonical URL. Optional on Vercel                                 |
+| `AUTH_TRUST_HOST`     | —        | `true` behind a proxy (Vercel sets this)                          |
+| `NEXT_PUBLIC_APP_URL` | —        | Public origin for metadata, share cards and the sitemap           |
+| `TEST_DATABASE_URL`   | —        | Separate database for the integration and E2E suites              |
+| `SEED_DEMO_USERS`     | —        | `true` to create demo accounts when seeding (never in production) |
+| `SEED_DEMO_PASSWORD`  | —        | Password for the demo accounts (default `applescore123`)          |
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. **Project Settings → Database → Connection string**.
-3. `DATABASE_URL` — the **Transaction pooler** URI (port `6543`), with
-   `?pgbouncer=true&connection_limit=1` appended.
-4. `DIRECT_URL` — the **Direct connection** URI (port `5432`).
+## Database
 
-### Neon
-
-1. Create a project at [neon.tech](https://neon.tech).
-2. `DATABASE_URL` — the **pooled** connection string (host contains `-pooler`).
-3. `DIRECT_URL` — the **unpooled** connection string.
-
-Both providers require `sslmode=require`, which is included in the strings they give you.
-
-## Prisma migrations
-
-The repository ships with an initial migration in `prisma/migrations/20250101000000_init`.
+Prisma manages the schema. Migrations live in `prisma/migrations`.
 
 ```bash
-# Apply existing migrations (use this in CI and production)
-npx prisma migrate deploy
-
-# Create a new migration after editing prisma/schema.prisma (development)
-npx prisma migrate dev --name describe_your_change
-
-# Regenerate the Prisma client on its own
-npx prisma generate
-
-# Inspect the data
-npx prisma studio
+npx prisma migrate deploy                 # apply migrations (CI / production)
+npx prisma migrate dev --name my_change   # create a migration after editing schema.prisma
+npm run db:seed                           # idempotent catalogue seed (upserts by slug)
+npx prisma studio                         # browse the data
 ```
 
-`prisma migrate dev` needs a shadow database, which is why `DIRECT_URL` must point at a
-non-pooled connection.
-
-If you would rather not use migration files at all (prototyping only):
-
-```bash
-npx prisma db push
-```
-
-## Seeding the catalogue
-
-```bash
-npm run db:seed
-```
-
-The seed is **idempotent** — it upserts by product slug, so it is safe to re-run after adding new
-products to `prisma/products.ts`.
-
-To also create demo accounts (`tim`, `steve`, `alex`, `casey`) so the ranking has something to
-show, opt in explicitly:
-
-```bash
-SEED_DEMO_USERS=true npm run db:seed
-```
-
-They all share the password `applescore123` (override with `SEED_DEMO_PASSWORD`).
-**Never enable this on a production database.**
-
-### Adding your own products
-
-Edit `prisma/products.ts` and re-run the seed. Each entry needs a unique `slug`, a `name`, a
-`category`, the launch `priceUSD` in whole dollars, and the announcement `year`. Artwork is
-category-based line art from `public/product-art/`; point `CATEGORY_IMAGE` (or the individual product
-records) at your own image URLs if you have real photography.
+The seed is safe to re-run. With `SEED_DEMO_USERS=true` it also rebuilds the
+demo accounts, their collections, follows, activity history and achievements.
 
 ## Scripts
 
-| Script                 | What it does                                    |
-| ---------------------- | ----------------------------------------------- |
-| `npm run dev`          | Start the dev server                            |
-| `npm run build`        | `prisma generate` + production build            |
-| `npm run start`        | Serve the production build                      |
-| `npm run lint`         | ESLint                                          |
-| `npm run typecheck`    | `tsc --noEmit`                                  |
-| `npm run format`       | Prettier (writes)                               |
-| `npm run format:check` | Prettier (checks only)                          |
-| `npm run db:migrate`   | `prisma migrate dev`                            |
-| `npm run db:deploy`    | `prisma migrate deploy`                         |
-| `npm run db:push`      | `prisma db push`                                |
-| `npm run db:seed`      | Seed the product catalogue                      |
-| `npm run db:studio`    | Open Prisma Studio                              |
+| Script                     | What it does                                                   |
+| -------------------------- | -------------------------------------------------------------- |
+| `npm run dev`              | Development server                                             |
+| `npm run build`            | `prisma generate` + production build                           |
+| `npm run start`            | Serve the production build                                     |
+| `npm run lint`             | ESLint                                                         |
+| `npm run typecheck`        | `tsc --noEmit`                                                 |
+| `npm run format`           | Prettier (write) · `format:check` to verify                    |
+| `npm test`                 | Unit + integration tests (Vitest)                              |
+| `npm run test:unit`        | Pure-function tests only                                       |
+| `npm run test:integration` | Data layer + server actions against Postgres                   |
+| `npm run test:e2e`         | Playwright journey against a production build                  |
+| `npm run check`            | lint + typecheck + test                                        |
+| `npm run db:*`             | Prisma helpers (`migrate`, `deploy`, `push`, `seed`, `studio`) |
 
-## Project structure
+## How the score works
 
-```
-prisma/
-  schema.prisma          # User, Product, UserProduct, Category enum
-  products.ts            # Current Apple catalogue (125 products)
-  legacy-products.ts     # Discontinued / vintage hardware (108 products)
-  seed.ts                # Idempotent seed script
-  migrations/            # SQL migrations
-public/product-art/         # Category line-art SVGs
-src/
-  auth.ts                # Auth.js instance (Credentials provider)
-  auth.config.ts         # Edge-safe config shared with middleware
-  middleware.ts          # Route protection
-  actions/
-    auth.ts              # signup / login / logout server actions
-    products.ts          # add / set quantity / remove server actions
-    types.ts             # Discriminated ActionResult type
-  app/
-    (auth)/login         # /login
-    (auth)/signup        # /signup
-    home                 # /home
-    leaderboard          # /leaderboard  (titled "Band for Band" in the UI)
-    products/add         # /products/add
-    profile              # /profile
-    u/[username]         # /u/<username> public profile
-    api/auth/[...nextauth]
-  components/
-    ui/                  # shadcn/ui primitives
-    auth/                # login + signup forms
-    …                    # ProductCard, LeaderboardTable, CategoryChart, …
-  hooks/
-    use-score-action.ts  # Runs an action → toast → confetti → refresh
-  lib/
-    prisma.ts            # Singleton Prisma client
-    queries.ts           # Data-access layer (incl. leaderboard SQL)
-    score.ts             # The Apple Score formula
-    achievements.ts      # Achievement definitions
-    validations.ts       # Zod schemas
-    categories.ts        # Labels, search keywords, tints
-    branding.ts          # LEADERBOARD_NAME — the ranking page's display name
-    utils.ts             # cn() and formatters
-```
-
-## How the score is calculated
-
-The formula lives in one place — [`src/lib/score.ts`](src/lib/score.ts):
+The formula is in [`src/lib/score.ts`](src/lib/score.ts):
 
 ```ts
 export function lineTotal(item: ScorableItem): number {
-  const base = unitPrice(item) * item.quantity; // pricePaidUSD ?? MSRP
-  return item.product.legacy ? Math.round(base * (1 + LEGACY_BONUS)) : base;
+  return (item.pricePaidUSD ?? item.product.priceUSD) * item.quantity;
 }
 ```
 
-The ranking cannot express `SUM(price × quantity)` through Prisma's typed `groupBy`, so
-[`getLeaderboard()`](src/lib/queries.ts) uses a single window-function query instead of loading
-every inventory row into memory:
+- **Launch MSRP** of the base configuration, in whole US dollars, is the
+  default price for every product.
+- **Price paid** can be recorded per owned line (second-hand, on sale, or the
+  higher configuration you actually bought) and replaces the MSRP for that
+  line only. It is bounded to $0–$50,000.
+- **Legacy hardware** scores at its original sticker price — a $2,495
+  Macintosh 128K is worth $2,495. No inflation adjustment, no bonus.
+- **No multipliers of any kind.** More money spent on Apple is a higher score.
+  That is the whole idea.
 
-```sql
-WITH scores AS (
-  SELECT u.id, u.username, u."createdAt",
-         COALESCE(SUM(ROUND(
-           COALESCE(up."pricePaidUSD", p."priceUSD") * up.quantity
-           * CASE WHEN p.legacy THEN 1.10 ELSE 1 END
-         )), 0)::int AS score, …
-  FROM "User" u
-  LEFT JOIN "UserProduct" up ON up."userId" = u.id AND up.quantity > 0
-  LEFT JOIN "Product" p ON p.id = up."productId"
-  GROUP BY u.id, u.username, u."createdAt"
-)
-SELECT s.*, RANK() OVER (ORDER BY s.score DESC)::int AS rank FROM scores s ORDER BY rank
+The score is never stored; it is computed from the ownership table on every
+read (and in SQL for the leaderboard), so it cannot drift or be tampered with.
+Rank movement is reconstructed from the append-only activity log. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the details.
+
+## Testing
+
+```bash
+npm run test:unit            # no database needed
+npm run test:integration     # needs a seeded Postgres (DATABASE_URL or TEST_DATABASE_URL)
+npm run build && npm run test:e2e   # Playwright; installs nothing, starts `next start` itself
 ```
 
-Ties share a rank (1, 2, 2, 4). Prices are whole US dollars and the legacy bonus is rounded, so
-scores are always integers. The SQL multiplier is derived from the same `LEGACY_BONUS` constant
-the TypeScript uses, and is emitted as a numeric literal so Postgres does exact decimal
-arithmetic — `ROUND()` and `Math.round()` then agree on every `.5` boundary (verified across 240
-cases spanning both).
+Integration tests create their own users (prefixed `t_`) and delete them
+afterwards; the E2E suite creates one user per run (`e2e_…`). Both are safe to
+run against a development database.
 
-## Deploying to Vercel
+CI runs lint, typecheck, format check, migrations + seed, unit + integration
+tests, the production build and the E2E suite on every pull request.
 
-GitHub Pages cannot host this app — it needs a server for authentication, server actions and
-database access. Vercel is the natural fit.
+## Deploying
 
-1. **Push to GitHub.**
+### Vercel
 
-   ```bash
-   git remote add origin https://github.com/<you>/apple-score.git
-   git push -u origin main
-   ```
-
-2. **Import the repo** at [vercel.com/new](https://vercel.com/new). Framework preset: Next.js.
-
-3. **Add the environment variables** from `.env.example` in
-   *Project Settings → Environment Variables*:
-   `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST=true`, and
-   `NEXT_PUBLIC_APP_URL=https://<your-app>.vercel.app`.
-
-4. **Deploy.** The build script runs `prisma generate` before `next build`.
-
-5. **Apply migrations and seed** once, from your machine, pointing at the production database:
+1. Import the repository at [vercel.com/new](https://vercel.com/new).
+2. Add the environment variables from `.env.example` (`DATABASE_URL`,
+   `DIRECT_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST=true`,
+   `NEXT_PUBLIC_APP_URL=https://<your-app>.vercel.app`).
+3. Deploy. The build runs `prisma generate` first.
+4. Apply migrations and seed once, from your machine, pointing at the
+   production database:
 
    ```bash
    DATABASE_URL="<prod pooled url>" DIRECT_URL="<prod direct url>" npx prisma migrate deploy
    DATABASE_URL="<prod pooled url>" DIRECT_URL="<prod direct url>" npm run db:seed
    ```
 
-   To run migrations automatically on every deploy instead, change the build command to
+   To migrate automatically on every deploy, set the build command to
    `prisma migrate deploy && prisma generate && next build`.
 
-## Accessibility
+### Anywhere else
 
-- Semantic landmarks, a skip-to-content link, and a real `<table>` with a caption and scoped
-  headers for the ranking table
-- Every interactive control is keyboard reachable with a visible `:focus-visible` ring
-- Radix primitives handle dialog focus trapping and `aria-*` wiring
-- Live regions announce filtered result counts and quantity changes
-- All animation is disabled under `prefers-reduced-motion`, including confetti
-- Colour is never the only signal — medals, badges and the category chart all carry text labels
+`npm run build && npm run start` behind any reverse proxy. Set `AUTH_URL` to
+the public origin. Share-card images render on the Node runtime with vendored
+fonts, so no outbound network is required.
 
-## Known limitations
+## Architecture
 
-**Unknown public profiles are soft 404s.** `/u/<unknown>` renders the not-found UI correctly,
-but responds `200` rather than `404`. The root layout awaits `auth()` to render the navbar,
-which makes every route render dynamically; Next.js commits the response status before the
-page body reaches `notFound()`. The metadata for those pages sets `noindex, nofollow` so search
-engines do not index them. Removing `force-dynamic` and moving `notFound()` into
-`generateMetadata` were both tried and neither changes the status — the fix would be to stop
-reading the session in the root layout, which is a larger architectural change.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): data model, request flow,
+leaderboard SQL, achievement engine, security review, caching and testing.
 
-**Two npm advisories remain**, both in the PostCSS version that Next.js vendors internally.
-They are build-time only, require attacker-controlled CSS, and are fixable only by upgrading to
-Next.js 16 — outside this project's Next.js 15 requirement. Run `npm audit` to review.
+## Adding products
+
+Edit `prisma/products.ts` (current hardware) or `prisma/legacy-products.ts`
+(discontinued) and re-run `npm run db:seed`. Each entry needs a unique `slug`,
+`name`, `category`, launch `priceUSD` and `year`; `family` is derived from the
+name (`src/lib/families.ts`) unless set explicitly. Artwork is category-based
+line art from `public/product-art/`.
 
 ## Disclaimer
 
-Apple Score is an unofficial, for-fun project and is **not affiliated with, endorsed by, or
-sponsored by Apple Inc.** "Apple", product names and trademarks belong to Apple Inc.
-
-Prices are US launch MSRPs for the base configuration, stored as whole dollars. They are a
-scoring reference, not a valuation of your actual hardware.
+Apple Score is an unofficial, for-fun project and is **not affiliated with,
+endorsed by, or sponsored by Apple Inc.** Apple, product names and trademarks
+belong to Apple Inc. Prices are US launch MSRPs for the base configuration and
+are a scoring reference, not a valuation of your hardware.

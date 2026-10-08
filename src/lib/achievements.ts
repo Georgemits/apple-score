@@ -133,7 +133,9 @@ function owns(context: AchievementContext, predicate: (item: AchievementItem) =>
 
 function distinctYears(context: AchievementContext, category: Category): number {
   return new Set(
-    context.items.filter((item) => item.product.category === category).map((item) => item.product.year)
+    context.items
+      .filter((item) => item.product.category === category)
+      .map((item) => item.product.year)
   ).size;
 }
 

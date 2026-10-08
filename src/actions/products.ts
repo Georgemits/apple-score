@@ -66,7 +66,10 @@ type Applied = { before: number; after: number; productCount: number };
  * Applies a set of ownership changes atomically and appends one activity
  * event per change. Returns the score before and after.
  */
-async function applyChanges(userId: string, changes: Change[]): Promise<Applied | { error: string }> {
+async function applyChanges(
+  userId: string,
+  changes: Change[]
+): Promise<Applied | { error: string }> {
   return prisma.$transaction(async (tx) => {
     const inventory = await tx.userProduct.findMany({
       where: { userId },

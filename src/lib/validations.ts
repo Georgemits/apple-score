@@ -109,7 +109,8 @@ export const MAX_DISPLAY_NAME = 40;
 export const MAX_BIO = 160;
 
 /** A single emoji (one extended grapheme cluster that is an emoji). */
-const EMOJI_PATTERN = /^\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*$/u;
+const EMOJI_PATTERN =
+  /^\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*$/u;
 
 export const AVATAR_HUES = [0, 25, 45, 90, 150, 190, 215, 250, 280, 320] as const;
 

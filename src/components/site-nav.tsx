@@ -5,17 +5,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Award,
+  Boxes,
   LogOut,
   Menu,
+  Plus,
+  Search,
+  Settings,
   Trophy,
   User as UserIcon,
   X,
   Home as HomeIcon,
-  Plus,
   type LucideIcon,
 } from "lucide-react";
+import { OPEN_PALETTE_EVENT } from "@/components/command-palette";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,23 +30,32 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserAvatar } from "@/components/user-avatar";
 import { logoutAction } from "@/actions/auth";
 import { LEADERBOARD_NAME } from "@/lib/branding";
-import { cn, initials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
-type NavUser = { username: string; email: string } | null;
+export type NavUser = {
+  username: string;
+  email: string;
+  displayName: string | null;
+  avatarEmoji: string | null;
+  avatarHue: number | null;
+} | null;
 
 type NavLink = { href: string; label: string; icon: LucideIcon };
 
 const AUTHED_LINKS: NavLink[] = [
   { href: "/home", label: "Home", icon: HomeIcon },
-  { href: "/products/add", label: "Add product", icon: Plus },
+  { href: "/collection", label: "Collection", icon: Boxes },
+  { href: "/catalog", label: "Add", icon: Plus },
   { href: "/leaderboard", label: LEADERBOARD_NAME, icon: Trophy },
-  { href: "/profile", label: "Profile", icon: UserIcon },
+  { href: "/achievements", label: "Achievements", icon: Award },
 ];
 
 const GUEST_LINKS: NavLink[] = [
   { href: "/leaderboard", label: LEADERBOARD_NAME, icon: Trophy },
+  { href: "/achievements", label: "Achievements", icon: Award },
 ];
 
 function LogoutForm({ className }: { className?: string }) {
@@ -72,7 +85,7 @@ export function SiteNav({ user }: { user: NavUser }) {
 
   return (
     <header className="sticky top-0 z-40 w-full">
-      <div className="glass border-x-0 border-t-0 rounded-none">
+      <div className="glass rounded-none border-x-0 border-t-0">
         <nav
           aria-label="Main"
           className="container flex h-16 items-center justify-between gap-4 px-4 sm:px-6"
@@ -111,65 +124,90 @@ export function SiteNav({ user }: { user: NavUser }) {
           </ul>
 
           <div className="flex items-center gap-1.5">
+            {user && (
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT))}
+                className="hidden h-9 items-center gap-2 rounded-full border border-border/70 bg-background/60 px-3 text-sm text-muted-foreground transition-colors hover:text-foreground lg:flex"
+                aria-label="Quick add a product (Command K)"
+              >
+                <Search className="size-3.5" aria-hidden="true" />
+                Quick add
+                <kbd className="rounded-md border border-border bg-secondary px-1.5 py-0.5 font-sans text-[10px] font-medium">
+                  ⌘K
+                </kbd>
+              </button>
+            )}
             <ThemeToggle />
 
             {user ? (
-              <div className="hidden md:block">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                      aria-label="Account menu"
-                    >
-                      <Avatar className="size-9">
-                        <AvatarFallback>{initials(user.username)}</AvatarFallback>
-                      </Avatar>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel className="truncate">
-                      @{user.username}
-                      <span className="block truncate font-normal">{user.email}</span>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile">
-                        <UserIcon aria-hidden="true" />
-                        Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <LogoutForm />
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    aria-label="Account menu"
+                  >
+                    <UserAvatar user={user} size={36} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel className="truncate">
+                    {user.displayName ?? `@${user.username}`}
+                    <span className="block truncate font-normal text-muted-foreground">
+                      {user.displayName ? `@${user.username}` : user.email}
+                    </span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <UserIcon aria-hidden="true" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/achievements">
+                      <Award aria-hidden="true" />
+                      Achievements
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                      <Settings aria-hidden="true" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <LogoutForm />
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <div className="hidden items-center gap-2 md:flex">
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/login">Log in</Link>
+              <>
+                <div className="hidden items-center gap-2 md:flex">
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href="/login">Log in</Link>
+                  </Button>
+                  <Button asChild size="sm">
+                    <Link href="/signup">Get started</Link>
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  aria-expanded={open}
+                  aria-controls="mobile-nav"
+                  aria-label={open ? "Close menu" : "Open menu"}
+                  onClick={() => setOpen((value) => !value)}
+                >
+                  {open ? <X className="size-5" /> : <Menu className="size-5" />}
                 </Button>
-                <Button asChild size="sm">
-                  <Link href="/signup">Get started</Link>
-                </Button>
-              </div>
+              </>
             )}
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              aria-expanded={open}
-              aria-controls="mobile-nav"
-              aria-label={open ? "Close menu" : "Open menu"}
-              onClick={() => setOpen((value) => !value)}
-            >
-              {open ? <X className="size-5" /> : <Menu className="size-5" />}
-            </Button>
           </div>
         </nav>
 
         <AnimatePresence initial={false}>
-          {open && (
+          {open && !user && (
             <motion.div
               id="mobile-nav"
               initial={{ height: 0, opacity: 0 }}
@@ -194,20 +232,15 @@ export function SiteNav({ user }: { user: NavUser }) {
                     </Link>
                   </li>
                 ))}
-
                 <li className="pt-2">
-                  {user ? (
-                    <LogoutForm />
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      <Button asChild variant="outline">
-                        <Link href="/login">Log in</Link>
-                      </Button>
-                      <Button asChild>
-                        <Link href="/signup">Get started</Link>
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-2">
+                    <Button asChild variant="outline">
+                      <Link href="/login">Log in</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href="/signup">Get started</Link>
+                    </Button>
+                  </div>
                 </li>
               </ul>
             </motion.div>

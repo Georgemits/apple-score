@@ -4,7 +4,9 @@ const session = vi.hoisted(() => ({ current: null as { id: string; username: str
 
 vi.mock("@/auth", () => ({
   auth: async () =>
-    session.current ? { user: { id: session.current.id, username: session.current.username } } : null,
+    session.current
+      ? { user: { id: session.current.id, username: session.current.username } }
+      : null,
   signIn: async () => undefined,
   signOut: async () => undefined,
 }));
@@ -89,7 +91,9 @@ describe("inventory actions", () => {
     if (!again.ok) return;
     expect(again.data.score).toBe(3 * 1_199);
 
-    const rows = await prisma.userProduct.findMany({ where: { userId: me.id, productId: iphone.id } });
+    const rows = await prisma.userProduct.findMany({
+      where: { userId: me.id, productId: iphone.id },
+    });
     expect(rows).toHaveLength(1);
     expect(rows[0]!.quantity).toBe(3);
 
@@ -120,7 +124,11 @@ describe("inventory actions", () => {
     expect(activity[0]?.type).toBe("REPRICE");
     expect(activity[0]?.quantityDelta).toBe(0);
 
-    const reset = await updateOwnedItemAction({ productId: iphone.id, quantity: 2, pricePaidUSD: null });
+    const reset = await updateOwnedItemAction({
+      productId: iphone.id,
+      quantity: 2,
+      pricePaidUSD: null,
+    });
     expect(reset.ok).toBe(true);
     if (reset.ok) expect(reset.data.score).toBe(2 * 1_199);
   });

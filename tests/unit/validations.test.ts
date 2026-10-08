@@ -40,9 +40,13 @@ describe("signup and login", () => {
   it("requires matching passwords of a sensible length", () => {
     const base = { username: "tim", email: "Tim@Example.com", password: "password123" };
     expect(signupSchema.safeParse({ ...base, confirmPassword: "password123" }).success).toBe(true);
-    expect(signupSchema.parse({ ...base, confirmPassword: "password123" }).email).toBe("tim@example.com");
+    expect(signupSchema.parse({ ...base, confirmPassword: "password123" }).email).toBe(
+      "tim@example.com"
+    );
     expect(signupSchema.safeParse({ ...base, confirmPassword: "nope" }).success).toBe(false);
-    expect(signupSchema.safeParse({ ...base, password: "short", confirmPassword: "short" }).success).toBe(false);
+    expect(
+      signupSchema.safeParse({ ...base, password: "short", confirmPassword: "short" }).success
+    ).toBe(false);
   });
 
   it("validates login fields", () => {
@@ -61,14 +65,25 @@ describe("inventory input", () => {
   });
 
   it("keeps a null price distinct from zero", () => {
-    expect(updateOwnedItemSchema.parse({ productId: "p", quantity: 1, pricePaidUSD: null }).pricePaidUSD).toBeNull();
-    expect(updateOwnedItemSchema.parse({ productId: "p", quantity: 1, pricePaidUSD: "0" }).pricePaidUSD).toBe(0);
-    expect(updateOwnedItemSchema.safeParse({ productId: "p", quantity: 1, pricePaidUSD: -1 }).success).toBe(false);
-    expect(updateOwnedItemSchema.safeParse({ productId: "p", quantity: 1, pricePaidUSD: 60_000 }).success).toBe(false);
+    expect(
+      updateOwnedItemSchema.parse({ productId: "p", quantity: 1, pricePaidUSD: null }).pricePaidUSD
+    ).toBeNull();
+    expect(
+      updateOwnedItemSchema.parse({ productId: "p", quantity: 1, pricePaidUSD: "0" }).pricePaidUSD
+    ).toBe(0);
+    expect(
+      updateOwnedItemSchema.safeParse({ productId: "p", quantity: 1, pricePaidUSD: -1 }).success
+    ).toBe(false);
+    expect(
+      updateOwnedItemSchema.safeParse({ productId: "p", quantity: 1, pricePaidUSD: 60_000 }).success
+    ).toBe(false);
   });
 
   it("limits onboarding batches", () => {
-    const items = Array.from({ length: 13 }, (_, index) => ({ productId: `p${index}`, quantity: 1 }));
+    const items = Array.from({ length: 13 }, (_, index) => ({
+      productId: `p${index}`,
+      quantity: 1,
+    }));
     expect(onboardingSchema.safeParse({ items }).success).toBe(false);
     expect(onboardingSchema.safeParse({ items: items.slice(0, 12) }).success).toBe(true);
   });
@@ -86,9 +101,33 @@ describe("profile input", () => {
     expect(parsed.displayName).toBeNull();
     expect(parsed.avatarEmoji).toBe("🍎");
     expect(parsed.avatarHue).toBe(215);
-    expect(profileSchema.safeParse({ displayName: "", bio: "", avatarEmoji: "ab", avatarHue: null, isPublic: true }).success).toBe(false);
-    expect(profileSchema.safeParse({ displayName: "", bio: "", avatarEmoji: "👩‍💻", avatarHue: null, isPublic: false }).success).toBe(true);
-    expect(profileSchema.safeParse({ displayName: "", bio: "x".repeat(161), avatarEmoji: "", avatarHue: null, isPublic: true }).success).toBe(false);
+    expect(
+      profileSchema.safeParse({
+        displayName: "",
+        bio: "",
+        avatarEmoji: "ab",
+        avatarHue: null,
+        isPublic: true,
+      }).success
+    ).toBe(false);
+    expect(
+      profileSchema.safeParse({
+        displayName: "",
+        bio: "",
+        avatarEmoji: "👩‍💻",
+        avatarHue: null,
+        isPublic: false,
+      }).success
+    ).toBe(true);
+    expect(
+      profileSchema.safeParse({
+        displayName: "",
+        bio: "x".repeat(161),
+        avatarEmoji: "",
+        avatarHue: null,
+        isPublic: true,
+      }).success
+    ).toBe(false);
   });
 });
 

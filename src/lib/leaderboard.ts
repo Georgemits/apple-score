@@ -281,8 +281,7 @@ function finish(row: RawRow): BoardRow {
   const contested = row.total >= 2 && min < max;
   return {
     ...rest,
-    movement:
-      row.previousRank === null ? null : row.isNew ? null : row.previousRank - row.rank,
+    movement: row.previousRank === null ? null : row.isNew ? null : row.previousRank - row.rank,
     isTop: contested && row.value === max,
     isBottom: contested && row.value === min,
   };

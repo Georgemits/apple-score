@@ -106,16 +106,70 @@ export type Tier = {
 
 /** Ordered lowest to highest. Playful about money, never about people. */
 export const TIERS: readonly Tier[] = [
-  { id: "window-shopper", min: 0, name: "Window Shopper", emoji: "🪟", tagline: "Looking, not buying. Yet." },
+  {
+    id: "window-shopper",
+    min: 0,
+    name: "Window Shopper",
+    emoji: "🪟",
+    tagline: "Looking, not buying. Yet.",
+  },
   { id: "toe-dipper", min: 1, name: "Toe Dipper", emoji: "🧦", tagline: "One cable at a time." },
-  { id: "casual-fan", min: 1_000, name: "Casual Fan", emoji: "🍏", tagline: "You own a thing or two." },
-  { id: "committed", min: 2_500, name: "Committed", emoji: "🔒", tagline: "The ecosystem has you now." },
-  { id: "apple-addict", min: 5_000, name: "Apple Addict", emoji: "💊", tagline: "Three devices, one wallet." },
-  { id: "ecosystem-hostage", min: 10_000, name: "Ecosystem Hostage", emoji: "⛓️", tagline: "Leaving would cost more than staying." },
-  { id: "cupertino-royalty", min: 25_000, name: "Cupertino Royalty", emoji: "👑", tagline: "Apple Park should name a bench after you." },
-  { id: "keynote-vip", min: 50_000, name: "Keynote VIP", emoji: "🎟️", tagline: "You have personally funded a keynote demo." },
-  { id: "tims-favourite", min: 100_000, name: "Tim's Favourite Customer", emoji: "🍎", tagline: "Tim Cook knows your name. Probably." },
-  { id: "infinite-loop", min: 250_000, name: "Infinite Loop", emoji: "♾️", tagline: "There is no exit. There never was." },
+  {
+    id: "casual-fan",
+    min: 1_000,
+    name: "Casual Fan",
+    emoji: "🍏",
+    tagline: "You own a thing or two.",
+  },
+  {
+    id: "committed",
+    min: 2_500,
+    name: "Committed",
+    emoji: "🔒",
+    tagline: "The ecosystem has you now.",
+  },
+  {
+    id: "apple-addict",
+    min: 5_000,
+    name: "Apple Addict",
+    emoji: "💊",
+    tagline: "Three devices, one wallet.",
+  },
+  {
+    id: "ecosystem-hostage",
+    min: 10_000,
+    name: "Ecosystem Hostage",
+    emoji: "⛓️",
+    tagline: "Leaving would cost more than staying.",
+  },
+  {
+    id: "cupertino-royalty",
+    min: 25_000,
+    name: "Cupertino Royalty",
+    emoji: "👑",
+    tagline: "Apple Park should name a bench after you.",
+  },
+  {
+    id: "keynote-vip",
+    min: 50_000,
+    name: "Keynote VIP",
+    emoji: "🎟️",
+    tagline: "You have personally funded a keynote demo.",
+  },
+  {
+    id: "tims-favourite",
+    min: 100_000,
+    name: "Tim's Favourite Customer",
+    emoji: "🍎",
+    tagline: "Tim Cook knows your name. Probably.",
+  },
+  {
+    id: "infinite-loop",
+    min: 250_000,
+    name: "Infinite Loop",
+    emoji: "♾️",
+    tagline: "There is no exit. There never was.",
+  },
 ] as const;
 
 export function tierFor(score: number): Tier {

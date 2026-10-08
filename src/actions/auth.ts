@@ -41,7 +41,9 @@ export async function signupAction(input: SignupInput): Promise<ActionResult> {
 
   if (existing) {
     return existing.email === email
-      ? failure("That email is already registered.", { email: ["That email is already registered."] })
+      ? failure("That email is already registered.", {
+          email: ["That email is already registered."],
+        })
       : failure("That username is taken.", { username: ["That username is taken."] });
   }
 
@@ -53,7 +55,9 @@ export async function signupAction(input: SignupInput): Promise<ActionResult> {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       const target = Array.isArray(error.meta?.target) ? error.meta.target.join(",") : "";
       return target.includes("email")
-        ? failure("That email is already registered.", { email: ["That email is already registered."] })
+        ? failure("That email is already registered.", {
+            email: ["That email is already registered."],
+          })
         : failure("That username is taken.", { username: ["That username is taken."] });
     }
     console.error("signupAction:", error);

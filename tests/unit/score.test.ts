@@ -24,7 +24,12 @@ const item = (
 
 describe("Apple Score formula", () => {
   it("is the sum of price × quantity across the collection", () => {
-    const items = [item(3_499, 1, null, "MAC"), item(1_599, 1), item(249, 1, null, "AIRPODS"), item(799, 1)];
+    const items = [
+      item(3_499, 1, null, "MAC"),
+      item(1_599, 1),
+      item(249, 1, null, "AIRPODS"),
+      item(799, 1),
+    ];
     expect(calculateScore(items)).toBe(3_499 + 1_599 + 249 + 799);
   });
 
@@ -44,7 +49,9 @@ describe("Apple Score formula", () => {
 
   it("applies no multipliers of any kind", () => {
     // A $2,495 Macintosh 128K is worth exactly $2,495, whatever its age.
-    expect(lineTotal({ quantity: 1, pricePaidUSD: null, product: { priceUSD: 2_495 } })).toBe(2_495);
+    expect(lineTotal({ quantity: 1, pricePaidUSD: null, product: { priceUSD: 2_495 } })).toBe(
+      2_495
+    );
   });
 
   it("is zero for an empty collection", () => {
