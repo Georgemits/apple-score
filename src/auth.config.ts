@@ -1,7 +1,15 @@
 import type { NextAuthConfig } from "next-auth";
 
 /** Routes that require a session. */
-const PROTECTED_PREFIXES = ["/home", "/profile", "/products"] as const;
+const PROTECTED_PREFIXES = [
+  "/home",
+  "/collection",
+  "/catalog",
+  "/wishlist",
+  "/profile",
+  "/settings",
+  "/welcome",
+] as const;
 
 /** Routes a signed-in user should be bounced away from. */
 const AUTH_PAGES = ["/login", "/signup"] as const;

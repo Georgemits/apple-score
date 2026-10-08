@@ -1,4 +1,10 @@
 // Apple Score — Prisma schema
+//
+// Ownership (`UserProduct`) is the single source of truth for a user's Apple
+// Score. Nothing stores a score that could drift from it: the score is always
+// Σ (pricePaidUSD ?? product.priceUSD) × quantity, computed in `src/lib/score.ts`
+// and, for ranking, in SQL inside `src/lib/leaderboard.ts`.
+//
 // Docs: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -11,7 +17,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-/// Product families used for filtering, grouping and achievements.
+/// Product families used for filtering, grouping, category boards and achievements.
 enum Category {
   IPHONE
   IPAD
@@ -26,52 +32,96 @@ enum Category {
   CLASSIC
 }
 
+/// What an inventory change did. Drives the activity feed and the score history.
+enum ActivityType {
+  /// Units were added (a new product, or more of an existing one).
+  ADD
+  /// Units were removed (fewer of a product, or the product entirely).
+  REMOVE
+  /// Only the recorded price changed; quantity stayed the same.
+  REPRICE
+}
+
 model User {
   id           String   @id @default(cuid())
+  /// Lower-case handle used in public URLs (`/u/<username>`). Immutable.
   username     String   @unique
   email        String   @unique
   passwordHash String
+  /// Optional friendlier name shown next to the handle.
+  displayName  String?
+  /// Short public blurb, at most 160 characters.
+  bio          String?
+  /// Single emoji rendered in the avatar. Null falls back to initials.
+  avatarEmoji  String?
+  /// Hue (0–359) of the generated avatar gradient. Null derives one from the username.
+  avatarHue    Int?
+  /// Public profiles appear on the leaderboard and at /u/<username>.
+  isPublic     Boolean  @default(true)
+  /// Set once the welcome flow has been completed or skipped.
+  onboardedAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  products UserProduct[]
+  products     UserProduct[]
+  events       ActivityEvent[]
+  achievements UserAchievement[]
+  wishlist     WishlistItem[]
+  /// Users this user follows.
+  following    Follow[]          @relation("UserFollowing")
+  /// Users following this user.
+  followers    Follow[]          @relation("UserFollowers")
 
   @@index([createdAt])
+  @@index([isPublic])
 }
 
 /// Global catalogue of Apple products. Shared by every user.
 model Product {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  category  Category
-  /// Launch MSRP in whole US dollars.
-  priceUSD  Int
-  image     String
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  category        Category
+  /// Product line within the category — "iPhone Pro", "MacBook Air", "iPad mini".
+  /// Used for grouping, search and collection achievements.
+  family          String
+  /// Launch MSRP of the base configuration in whole US dollars. This is the
+  /// price that counts toward the Apple Score unless the owner records what
+  /// they actually paid.
+  priceUSD        Int
+  /// Apple's current list price in whole US dollars, when the product is still
+  /// sold. Reserved for a future "current value" view — it never affects the score.
+  currentPriceUSD Int?
+  image           String
   /// Year the product was announced — used for sorting "newest first".
-  year      Int
+  year            Int
   /// Discontinued / vintage hardware. Surfaced with a "Legacy" badge.
-  legacy    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  legacy          Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
-  owners UserProduct[]
+  owners       UserProduct[]
+  events       ActivityEvent[]
+  wishlistedBy WishlistItem[]
 
   @@index([category])
+  @@index([family])
   @@index([priceUSD])
+  @@index([year])
   @@index([legacy])
 }
 
 /// Join table: which products a user owns, and how many of each.
 model UserProduct {
-  id        String   @id @default(cuid())
-  userId    String
-  productId String
-  quantity  Int      @default(1)
+  id           String   @id @default(cuid())
+  userId       String
+  productId    String
+  quantity     Int      @default(1)
   /// What the owner actually paid per unit, in whole US dollars. Null means
-  /// "use the product's MSRP" — set when a unit was bought second-hand.
+  /// "use the product's launch MSRP" — set when a unit was bought second-hand
+  /// or on sale.
   pricePaidUSD Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -79,4 +129,81 @@ model UserProduct {
   @@unique([userId, productId])
   @@index([userId])
   @@index([productId])
+}
+
+/// Append-only log of inventory changes. Powers the activity feed, the score
+/// history chart and "rank movement this week" (score 7 days ago = score now
+/// minus the deltas logged since).
+model ActivityEvent {
+  id            String       @id @default(cuid())
+  userId        String
+  /// Null once the catalogue entry has been deleted; `productName` survives.
+  productId     String?
+  productName   String
+  type          ActivityType
+  /// Signed change in units (0 for a reprice).
+  quantityDelta Int
+  /// Signed change to the Apple Score in whole US dollars.
+  scoreDelta    Int
+  /// The user's Apple Score immediately after this event.
+  scoreAfter    Int
+  createdAt     DateTime     @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+/// Achievements a user has unlocked. Definitions live in `src/lib/achievements.ts`;
+/// this table only records *when* each one was earned. Unlocks are permanent.
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([achievementId])
+  @@index([userId, unlockedAt])
+}
+
+/// A one-directional "follow" — the social graph behind the Following board.
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+/// Products a user wants next. Feeds the "what if I buy this?" simulator.
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+/// Fixed-window counters for rate limiting sign-in and sign-up attempts.
+/// Database-backed so the limit holds across serverless instances.
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
 }

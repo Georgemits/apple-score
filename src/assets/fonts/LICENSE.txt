@@ -1,0 +1,8 @@
+Inter (https://github.com/rsms/inter)
+Copyright 2016-2023 The Inter Project Authors (https://github.com/rsms/inter)
+
+Licensed under the SIL Open Font License, Version 1.1.
+https://openfontlicense.org/open-font-license-official-text/
+
+These files are Latin subsets of Inter Regular, SemiBold and Bold, used only
+to render shareable score-card images on the server.

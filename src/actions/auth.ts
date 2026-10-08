@@ -5,16 +5,32 @@ import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { clientAddress, rateLimit, retryMessage } from "@/lib/rate-limit";
 import { loginSchema, signupSchema, type LoginInput, type SignupInput } from "@/lib/validations";
 import { failure, type ActionResult } from "@/actions/types";
 
 const BCRYPT_ROUNDS = 12;
+
+/** Attempts allowed per window before an address or account is paused. */
+const LIMITS = {
+  signupPerAddress: { limit: 5, windowSeconds: 60 * 60 },
+  loginPerAddress: { limit: 30, windowSeconds: 15 * 60 },
+  loginPerAccount: { limit: 10, windowSeconds: 15 * 60 },
+} as const;
 
 export async function signupAction(input: SignupInput): Promise<ActionResult> {
   const parsed = signupSchema.safeParse(input);
   if (!parsed.success) {
     return failure("Please fix the highlighted fields.", parsed.error.flatten().fieldErrors);
   }
+
+  const address = await clientAddress();
+  const limited = await rateLimit(
+    `signup:ip:${address}`,
+    LIMITS.signupPerAddress.limit,
+    LIMITS.signupPerAddress.windowSeconds
+  );
+  if (!limited.ok) return failure(retryMessage(limited));
 
   const { username, email, password } = parsed.data;
 
@@ -61,6 +77,22 @@ export async function loginAction(input: LoginInput): Promise<ActionResult> {
   if (!parsed.success) {
     return failure("Please fix the highlighted fields.", parsed.error.flatten().fieldErrors);
   }
+
+  const address = await clientAddress();
+  const [byAddress, byAccount] = await Promise.all([
+    rateLimit(
+      `login:ip:${address}`,
+      LIMITS.loginPerAddress.limit,
+      LIMITS.loginPerAddress.windowSeconds
+    ),
+    rateLimit(
+      `login:email:${parsed.data.email}`,
+      LIMITS.loginPerAccount.limit,
+      LIMITS.loginPerAccount.windowSeconds
+    ),
+  ]);
+  if (!byAddress.ok) return failure(retryMessage(byAddress));
+  if (!byAccount.ok) return failure(retryMessage(byAccount));
 
   try {
     await signIn("credentials", { ...parsed.data, redirect: false });

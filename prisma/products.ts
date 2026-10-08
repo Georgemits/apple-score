@@ -10,6 +10,10 @@ export type SeedProduct = {
   year: number;
   /** Discontinued / vintage hardware. Rendered with a "Legacy" badge. */
   legacy?: boolean;
+  /** Product line. Derived from the name by `familyOf()` unless set explicitly. */
+  family?: string;
+  /** Apple's current list price, when still sold. Informational only. */
+  currentPriceUSD?: number;
 };
 
 /**
