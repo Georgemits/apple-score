@@ -9,16 +9,21 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { loginAction } from "@/actions/auth";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validations";
+import { safeCallbackUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/auth/field-error";
+import { FieldError, describedBy } from "@/components/auth/field-error";
+import { PasswordInput } from "@/components/auth/password-input";
+
+const NETWORK_ERROR = "Network error. Please try again.";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/home";
+  // Same-origin paths only; anything else falls back to the dashboard.
+  const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"));
 
   const [formError, setFormError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
@@ -36,32 +41,42 @@ export function LoginForm() {
     setFormError(null);
 
     startTransition(async () => {
-      const result = await loginAction(values);
+      try {
+        const result = await loginAction(values);
 
-      if (!result.ok) {
-        setFormError(result.error);
-        return;
+        if (!result.ok) {
+          setFormError(result.error);
+          toast.error(result.error);
+          return;
+        }
+
+        toast.success("Welcome back.");
+        router.replace(callbackUrl);
+        router.refresh();
+      } catch (error) {
+        console.error(error);
+        setFormError(NETWORK_ERROR);
+        toast.error(NETWORK_ERROR);
       }
-
-      toast.success("Welcome back.");
-      router.replace(callbackUrl);
-      router.refresh();
     });
   };
 
   const busy = isPending || isSubmitting;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl">Welcome back</CardTitle>
-        <CardDescription>Log in to keep tracking your Apple Score.</CardDescription>
+    <Card className="animate-enter-up">
+      <CardHeader className="space-y-2">
+        <CardTitle className="text-2xl tracking-tight">Welcome back</CardTitle>
+        <CardDescription>Log in to keep your Apple Score climbing.</CardDescription>
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate aria-busy={busy} className="space-y-5">
           {formError && (
-            <div role="alert" className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div
+              role="alert"
+              className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
               {formError}
             </div>
           )}
@@ -72,9 +87,10 @@ export function LoginForm() {
               id="email"
               type="email"
               autoComplete="email"
+              inputMode="email"
               placeholder="you@example.com"
               aria-invalid={Boolean(errors.email)}
-              aria-describedby={errors.email ? "email-error" : undefined}
+              aria-describedby={describedBy(errors.email && "email-error")}
               {...register("email")}
             />
             <FieldError id="email-error" message={errors.email?.message} />
@@ -82,12 +98,11 @@ export function LoginForm() {
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="current-password"
               aria-invalid={Boolean(errors.password)}
-              aria-describedby={errors.password ? "password-error" : undefined}
+              aria-describedby={describedBy(errors.password && "password-error")}
               {...register("password")}
             />
             <FieldError id="password-error" message={errors.password?.message} />
