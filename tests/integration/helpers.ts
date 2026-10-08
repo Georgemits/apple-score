@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
  * afterwards, so suites can share one database without stepping on each
  * other. The product catalogue is expected to be seeded already.
  */
-export const TEST_PREFIX = "t_";
+// No `_` or `%`: Prisma's `startsWith` compiles to SQL LIKE, where both are wildcards.
+export const TEST_PREFIX = "zztest";
 
 export async function createTestUser(
   overrides: { username?: string; password?: string; isPublic?: boolean } = {}

@@ -17,8 +17,10 @@ export function StatCard({ label, value, hint, icon: Icon, className }: StatCard
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="tabular mt-1 truncate text-2xl font-semibold tracking-tight">{value}</p>
-          {hint && <p className="mt-1 truncate text-xs text-muted-foreground">{hint}</p>}
+          <p className="tabular mt-1 break-words text-2xl font-semibold leading-tight tracking-tight">
+            {value}
+          </p>
+          {hint && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{hint}</p>}
         </div>
         {Icon && (
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground">
