@@ -176,7 +176,7 @@ export function CommandPalette() {
           Search the catalogue and press Enter to add a product, or jump to a page.
         </DialogDescription>
 
-        <div className="flex items-center gap-3 border-b border-border px-4">
+        <div className="flex items-center gap-3 border-b border-border pl-4 pr-12">
           <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <input
             autoFocus
@@ -205,9 +205,11 @@ export function CommandPalette() {
         >
           {commands.length === 0 && (
             <li className="px-3 py-8 text-center text-sm text-muted-foreground">
-              {products && products.length === 0
-                ? "Could not load the catalogue. Try again in a moment."
-                : `Nothing matches “${query}”. Try a product name, family or year.`}
+              {loading || products === null
+                ? "Loading the catalogue…"
+                : products.length === 0
+                  ? "Could not load the catalogue. Try again in a moment."
+                  : `Nothing matches “${query}”. Try a product name, family or year.`}
             </li>
           )}
           {commands.map((command, commandIndex) => {
