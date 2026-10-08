@@ -38,6 +38,12 @@ friends, and fight for a spot on **Band for Band** — the global leaderboard.
   purchase would give you.
 - **Onboarding** — a sixty-second welcome flow that gets a new user on the
   board with their iPhone, Mac and the rest of the ecosystem.
+- **Quick add** — press ⌘K anywhere, type a product, hit Enter. It's in your
+  collection.
+- **Product pages** — every catalogue entry has a public page (`/p/<slug>`)
+  with who owns it, its siblings, and what it would do to your rank.
+- **The Census** (`/stats`) — community totals, where the money goes, the
+  most-owned products and the newest collectors.
 - Light / dark / system themes, a mobile tab bar, loading skeletons, playful
   empty states, confetti where it counts.
 

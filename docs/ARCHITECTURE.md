@@ -71,6 +71,34 @@ tests/
   e2e/                     Playwright journey against a production build
 ```
 
+## Routes
+
+| Route                       | Who      | What                                                        |
+| --------------------------- | -------- | ----------------------------------------------------------- |
+| `/`                         | public   | Landing page with a live demo score, podium and the formula |
+| `/login`, `/signup`         | guests   | Credentials auth; sign-up continues to `/welcome`           |
+| `/welcome`                  | members  | Four-step onboarding ending in the score reveal             |
+| `/home`                     | members  | Dashboard: hero, history, standing, categories, activity    |
+| `/collection`               | members  | Owned products: search, sort, group, edit, remove           |
+| `/catalog`                  | members  | Add products; what-if rank preview in the add dialog        |
+| `/wishlist`                 | members  | Saved products and the purchase simulator                   |
+| `/leaderboard?board=…`      | public   | Band for Band boards, podium, standing, pagination          |
+| `/achievements`             | public   | All achievements; progress and unlocks when signed in       |
+| `/u/<username>`             | public\* | Social profile with OG image (`opengraph-image.tsx`)        |
+| `/u/<username>/card`        | public\* | Share cards (OG, square, story) with download and share     |
+| `/u/<a>/vs/<b>`             | public\* | Head-to-head comparison                                     |
+| `/p/<slug>`                 | public   | Product page: price, owners, siblings, add/wishlist         |
+| `/stats`                    | public   | Community census                                            |
+| `/settings`, `/profile`     | members  | Profile editor, password, export, delete; `/profile` → own  |
+| `/api/card/<username>`      | public\* | PNG score card (`?format=og\|square\|story`, `?download=1`) |
+| `/api/me/export`            | members  | JSON export of the signed-in user's data                    |
+| `/api/catalog`              | members  | Slim catalogue for the ⌘K palette                           |
+| `/api/health`               | public   | Liveness + database check                                   |
+| `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest` | public | SEO and PWA metadata |
+
+\* Private profiles respond 404 to everyone but their owner. Old links to
+`/products/add` redirect to `/catalog`.
+
 ## Data model
 
 ```
