@@ -37,6 +37,14 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The Dockerfile builds a self-contained server; Vercel does not need this.
   ...(process.env.NEXT_OUTPUT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
+  // Share-card images read fonts and emoji SVGs from disk at request time;
+  // make sure serverless bundles carry them.
+  outputFileTracingIncludes: {
+    "/api/card/[username]": ["./src/assets/**/*"],
+    "/u/[username]/opengraph-image": ["./src/assets/**/*"],
+    "/opengraph-image": ["./src/assets/**/*"],
+    "/apple-icon": ["./src/assets/**/*"],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

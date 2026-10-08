@@ -3,6 +3,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ImageResponse } from "next/og";
+import { emojiDataUri } from "@/lib/emoji-assets";
 import {
   APPLE_MARK_PATH,
   APPLE_MARK_VIEWBOX,
@@ -83,6 +84,9 @@ export type ShareCardData = {
   percentile: number | null;
   /** Host name printed at the bottom of the card, e.g. "applescore.app". */
   appHost: string;
+  /** Inline SVG data URIs for the emoji, resolved from the vendored set. */
+  avatarEmojiSrc?: string | null;
+  tierEmojiSrc?: string | null;
 };
 
 /** The deployment's host, for the card footer. */
@@ -329,7 +333,17 @@ function Avatar({
         letterSpacing: emoji ? 0 : -size * 0.01,
       }}
     >
-      {emoji ?? initials(data.username)}
+      {data.avatarEmojiSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={data.avatarEmojiSrc}
+          width={Math.round(size * 0.52)}
+          height={Math.round(size * 0.52)}
+          alt=""
+        />
+      ) : (
+        (emoji ?? initials(data.username))
+      )}
     </div>
   );
 }
@@ -337,11 +351,14 @@ function Avatar({
 function Pill({
   label,
   emoji,
+  emojiSrc,
   metrics,
   upper = true,
 }: {
   label: string;
   emoji?: string;
+  /** Vendored SVG for the emoji; preferred over the text glyph. */
+  emojiSrc?: string;
   metrics: Metrics;
   /** Pills are small caps by default; prose (the formula) keeps its case. */
   upper?: boolean;
@@ -364,7 +381,18 @@ function Pill({
         whiteSpace: "nowrap",
       }}
     >
-      {emoji ? <span style={{ marginRight: Math.round(metrics.pill * 0.45) }}>{emoji}</span> : null}
+      {emojiSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={emojiSrc}
+          width={Math.round(metrics.pill * 1.1)}
+          height={Math.round(metrics.pill * 1.1)}
+          alt=""
+          style={{ marginRight: Math.round(metrics.pill * 0.45) }}
+        />
+      ) : emoji ? (
+        <span style={{ marginRight: Math.round(metrics.pill * 0.45) }}>{emoji}</span>
+      ) : null}
       <span>{upper ? label.toUpperCase() : label}</span>
     </div>
   );
@@ -373,15 +401,21 @@ function Pill({
 /** The landscape card has the least vertical room; it keeps one row of pills. */
 const MAX_PILLS: Record<ShareFormat, number> = { og: 4, square: 6, story: 6 };
 
-function pills(data: ShareCardData, format: ShareFormat): { label: string; emoji?: string }[] {
-  const list: { label: string; emoji?: string }[] = [];
+type PillSpec = { label: string; emoji?: string; emojiSrc?: string };
+
+function pills(data: ShareCardData, format: ShareFormat): PillSpec[] {
+  const list: PillSpec[] = [];
   list.push({
     label: data.rank !== null ? `#${formatNumber(data.rank)} global` : "Unranked",
   });
   list.push({
     label: `${formatNumber(data.productCount)} ${data.productCount === 1 ? "product" : "products"}`,
   });
-  list.push({ label: data.tierName, emoji: data.tierEmoji || undefined });
+  list.push({
+    label: data.tierName,
+    emoji: data.tierEmojiSrc ? undefined : data.tierEmoji || undefined,
+    emojiSrc: data.tierEmojiSrc ?? undefined,
+  });
   if (data.percentile !== null && data.percentile >= 50) {
     list.push({ label: `Top ${Math.max(1, 100 - data.percentile)}%` });
   }
@@ -505,7 +539,13 @@ export function ShareCard({ data, format }: { data: ShareCardData; format: Share
         }}
       >
         {pills(data, format).map((pill) => (
-          <Pill key={pill.label} label={pill.label} emoji={pill.emoji} metrics={m} />
+          <Pill
+            key={pill.label}
+            label={pill.label}
+            emoji={pill.emoji}
+            emojiSrc={pill.emojiSrc}
+            metrics={m}
+          />
         ))}
       </div>
     </div>
@@ -695,9 +735,23 @@ function hasEmoji(data: ShareCardData): boolean {
  * with initials and no tier emoji rather than failing the request.
  */
 export async function renderShareCard(
-  data: ShareCardData,
+  input: ShareCardData,
   format: ShareFormat
 ): Promise<ArrayBuffer> {
+  // Prefer the vendored SVGs: no network, no font fallback, consistent look.
+  const [avatarEmojiSrc, tierEmojiSrc] = await Promise.all([
+    emojiDataUri(input.avatarEmoji),
+    emojiDataUri(input.tierEmoji),
+  ]);
+  const data: ShareCardData = {
+    ...input,
+    avatarEmojiSrc,
+    tierEmojiSrc,
+    // Only leave text glyphs behind for emoji that are not vendored.
+    avatarEmoji: avatarEmojiSrc ? null : input.avatarEmoji,
+    tierEmoji: tierEmojiSrc ? "" : input.tierEmoji,
+  };
+
   try {
     return await toPng(<ShareCard data={data} format={format} />, format);
   } catch (error) {

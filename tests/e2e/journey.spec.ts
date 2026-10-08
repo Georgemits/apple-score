@@ -103,7 +103,8 @@ test.describe("critical journey", () => {
   test("unknown profiles respond with 404", async ({ page }) => {
     const response = await page.goto("/u/this_user_does_not_exist_404");
     expect(response?.status()).toBe(404);
-    await expect(page.getByText(/not found/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: /home/i }).first()).toBeVisible();
   });
 
   test("public pages render for guests", async ({ page }) => {
