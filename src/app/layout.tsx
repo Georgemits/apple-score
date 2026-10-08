@@ -32,10 +32,11 @@ export const metadata: Metadata = {
     url: appUrl,
     siteName: "Apple Score",
     type: "website",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Apple Score" }],
   },
   twitter: { card: "summary_large_image", title: "Apple Score", description },
-  icons: { icon: "/apple-score-mark.svg", apple: "/apple-touch-icon.png" },
+  // The Apple touch icon and Open Graph image are file-based routes
+  // (src/app/apple-icon.tsx, src/app/opengraph-image.tsx) that Next wires up.
+  icons: { icon: "/apple-score-mark.svg" },
   manifest: "/manifest.webmanifest",
   alternates: { canonical: "/" },
 };

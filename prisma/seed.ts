@@ -316,11 +316,21 @@ async function seedDemoUsers() {
       const [quantity, pricePaidUSD] = Array.isArray(spec) ? spec : [spec, null];
       // Spread additions across the account's lifetime, most recent last.
       const span = Math.max(1, demo.joinedDaysAgo - 1);
-      const when = daysAgo(Math.max(0, span - Math.round((span * (index + 1)) / entries.length)), index);
+      const when = daysAgo(
+        Math.max(0, span - Math.round((span * (index + 1)) / entries.length)),
+        index
+      );
       index += 1;
 
       await prisma.userProduct.create({
-        data: { userId: user.id, productId: product.id, quantity, pricePaidUSD, createdAt: when, updatedAt: when },
+        data: {
+          userId: user.id,
+          productId: product.id,
+          quantity,
+          pricePaidUSD,
+          createdAt: when,
+          updatedAt: when,
+        },
       });
 
       const scoreDelta = (pricePaidUSD ?? product.priceUSD) * quantity;
