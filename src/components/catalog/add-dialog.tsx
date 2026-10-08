@@ -158,7 +158,7 @@ function AddDialogBody({ item, currentScore, onClose }: AddDialogBodyProps) {
 
   return (
     <form
-      className="grid gap-5"
+      className="grid grid-cols-[minmax(0,1fr)] gap-5"
       onSubmit={(event) => {
         event.preventDefault();
         confirm();
