@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { getStanding } from "@/lib/leaderboard";
 import { getProfile } from "@/lib/queries";
 import { clientAddress, rateLimit } from "@/lib/rate-limit";
+import { safeFilename } from "@/lib/utils";
 import {
   isShareFormat,
   renderShareCard,
@@ -17,11 +18,6 @@ type RouteContext = { params: Promise<{ username: string }> };
 
 const ALLOWED_PARAMS = new Set(["format", "download"]);
 const NO_STORE = { "Cache-Control": "no-store" } as const;
-
-/** Keeps the download filename to characters every OS accepts. */
-function safeFilename(username: string): string {
-  return username.toLowerCase().replace(/[^a-z0-9_-]/g, "") || "collector";
-}
 
 /**
  * Rendering a card means a leaderboard query plus a Satori layout and PNG

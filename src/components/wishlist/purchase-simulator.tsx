@@ -205,7 +205,12 @@ export function PurchaseSimulator({
                       Retry
                     </Button>
                   </div>
-                ) : shown ? (
+                ) : shown && shown.projectedRank === null ? (
+                  <p className="text-sm text-muted-foreground">
+                    Private profiles don&apos;t rank. Make yours public in Settings to see where
+                    this would land you.
+                  </p>
+                ) : shown && shown.projectedRank ? (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 px-3 py-1 text-sm font-medium backdrop-blur">
                       <Trophy className="size-3.5 text-gold" aria-hidden="true" />

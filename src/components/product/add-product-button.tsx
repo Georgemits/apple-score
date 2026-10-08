@@ -70,7 +70,7 @@ export function AddProductButton({
         variant={variant}
         className={className}
         onClick={() => setOpen(true)}
-        disabled={isPending}
+        aria-busy={isPending || undefined}
       >
         <Plus aria-hidden="true" />
         {ownedQuantity > 0 ? "Add another" : "Add to my collection"}
@@ -88,7 +88,9 @@ export function AddProductButton({
 
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
-              <Label>Quantity</Label>
+              <span className="text-sm font-medium leading-none" aria-hidden="true">
+                Quantity
+              </span>
               <QuantityStepper
                 value={quantity}
                 onChange={setQuantity}

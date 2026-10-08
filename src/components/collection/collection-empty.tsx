@@ -3,8 +3,13 @@ import { Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 
+type CollectionEmptyProps = {
+  /** The welcome flow only runs once; hide its button for users past it. */
+  showSetup: boolean;
+};
+
 /** Shown when the user owns nothing at all. */
-export function CollectionEmpty() {
+export function CollectionEmpty({ showSetup }: CollectionEmptyProps) {
   return (
     <EmptyState
       emoji="🪟"
@@ -23,12 +28,14 @@ export function CollectionEmpty() {
               Browse the catalogue
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/welcome">
-              <Sparkles aria-hidden="true" />
-              Quick start
-            </Link>
-          </Button>
+          {showSetup && (
+            <Button asChild variant="outline">
+              <Link href="/welcome">
+                <Sparkles aria-hidden="true" />
+                Quick start
+              </Link>
+            </Button>
+          )}
         </div>
       }
       className="py-20"

@@ -11,7 +11,7 @@ import { loginAction } from "@/actions/auth";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validations";
 import { safeCallbackUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError, describedBy } from "@/components/auth/field-error";
@@ -66,7 +66,7 @@ export function LoginForm() {
   return (
     <Card className="animate-enter-up">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-2xl tracking-tight">Welcome back</CardTitle>
+        <h1 className="text-2xl font-semibold leading-none tracking-tight">Welcome back</h1>
         <CardDescription>Log in to keep your Apple Score climbing.</CardDescription>
       </CardHeader>
 

@@ -102,20 +102,32 @@ export function formatRank(rank: number): string {
   return `#${formatNumber(rank)}`;
 }
 
-/** 1 → "1st", 2 → "2nd", 3 → "3rd", 11 → "11th", 22 → "22nd" */
-export function ordinal(value: number): string {
-  const mod100 = value % 100;
-  if (mod100 >= 11 && mod100 <= 13) return `${value}th`;
-  switch (value % 10) {
-    case 1:
-      return `${value}st`;
-    case 2:
-      return `${value}nd`;
-    case 3:
-      return `${value}rd`;
-    default:
-      return `${value}th`;
-  }
+/** The first value of a `searchParams` entry, or "" when absent. */
+export function firstParam(value: string | string[] | undefined): string {
+  return (Array.isArray(value) ? value[0] : value) ?? "";
+}
+
+/** Keeps a download filename to characters every OS accepts. */
+export function safeFilename(username: string): string {
+  return username.toLowerCase().replace(/[^a-z0-9_-]/g, "") || "collector";
+}
+
+/** A collector's display name, falling back to their handle. */
+export function profileName(user: { displayName: string | null; username: string }): string {
+  return user.displayName ?? `@${user.username}`;
+}
+
+/**
+ * Evenly samples a series down to about `max` points, always keeping the
+ * first and the last so the ends of a chart stay honest.
+ */
+export function downsample<T>(points: readonly T[], max: number): T[] {
+  if (points.length <= max) return [...points];
+  const step = points.length / max;
+  const sampled: T[] = [];
+  for (let index = 0; index < max; index += 1) sampled.push(points[Math.floor(index * step)]!);
+  sampled.push(points[points.length - 1]!);
+  return sampled;
 }
 
 /**

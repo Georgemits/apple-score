@@ -7,7 +7,7 @@ import { LEADERBOARD_NAME } from "@/lib/branding";
 import { getStanding } from "@/lib/leaderboard";
 import { getProfile } from "@/lib/queries";
 import { SHARE_FORMAT_KEYS, SHARE_FORMATS } from "@/lib/share-card";
-import { formatNumber, formatUSD, pluralize } from "@/lib/utils";
+import { formatNumber, formatUSD, pluralize, profileName } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { TierBadge } from "@/components/tier-badge";
@@ -19,10 +19,6 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ username: string }> };
 
-function displayName(user: { displayName: string | null; username: string }): string {
-  return user.displayName ?? `@${user.username}`;
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { username } = await params;
   const profile = await getProfile(username, null);
@@ -30,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: "Share card",
-    description: `Download or share ${displayName(profile.user)}'s Apple Score card in landscape, square and story formats.`,
+    description: `Download or share ${profileName(profile.user)}'s Apple Score card in landscape, square and story formats.`,
     robots: { index: false, follow: true },
   };
 }
@@ -49,7 +45,7 @@ export default async function ShareCardPage({ params }: PageProps) {
   const [standing, session] = await Promise.all([getStanding(user.id), auth()]);
 
   const isOwner = session?.user?.id === user.id;
-  const name = displayName(user);
+  const name = profileName(user);
   const profilePath = `/u/${user.username}`;
   const rankLine = standing
     ? ` — #${formatNumber(standing.me.rank)} of ${formatNumber(standing.me.total)} on ${LEADERBOARD_NAME}`

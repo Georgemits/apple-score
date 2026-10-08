@@ -9,7 +9,7 @@ import {
 } from "@/lib/achievements";
 import { buildAchievementContext } from "@/lib/achievement-sync";
 import { getAchievementRarity, getUnlockedAchievements } from "@/lib/queries";
-import { formatNumber } from "@/lib/utils";
+import { firstParam, formatNumber } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Reveal } from "@/components/reveal";
 import { AchievementsExplorer } from "@/components/achievements/achievements-explorer";
@@ -36,10 +36,6 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type PageProps = { searchParams: Promise<SearchParams> };
-
-function first(value: string | string[] | undefined): string {
-  return (Array.isArray(value) ? value[0] : value) ?? "";
-}
 
 function rarityRank(rarity: AchievementView["rarity"]): number {
   return RARITY_ORDER.indexOf(rarity);
@@ -78,7 +74,7 @@ export default async function AchievementsPage({ searchParams }: PageProps) {
   }));
 
   // `?fresh=` only lights up a card the viewer has actually earned.
-  const freshParam = first(params.fresh);
+  const freshParam = firstParam(params.fresh);
   const fresh =
     freshParam && unlockedById.has(freshParam) && getAchievementDefinition(freshParam)
       ? freshParam

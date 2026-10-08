@@ -120,14 +120,17 @@ describe("leaderboard", () => {
   it("simulates the rank a hypothetical score would earn", async () => {
     const asIs = await simulateRank(broke.id, 19);
     const standing = await getStanding(broke.id);
-    expect(asIs.rank).toBe(standing!.me.rank);
+    expect(asIs!.rank).toBe(standing!.me.rank);
 
     const richer = await simulateRank(broke.id, 100_000);
-    expect(richer.rank).toBe(1);
+    expect(richer!.rank).toBe(1);
 
     const newcomer = await simulateRank(empty.id, 1_500);
-    expect(newcomer.total).toBe(asIs.total + 1);
-    expect(newcomer.rank).toBeGreaterThan(1);
+    expect(newcomer!.total).toBe(asIs!.total + 1);
+    expect(newcomer!.rank).toBeGreaterThan(1);
+
+    // Private profiles never rank, so there is nothing to project.
+    expect(await simulateRank(hidden.id, 1_000_000)).toBeNull();
   });
 
   it("puts the top three on the podium", async () => {

@@ -1,4 +1,5 @@
 import type { Category } from "@prisma/client";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 import { lineTotal, unitPrice, type CategoryBreakdown } from "@/lib/score";
 
 /**
@@ -102,7 +103,7 @@ export const GROUP_LABEL: Record<AchievementGroup, string> = {
   vintage: "Vintage",
   spending: "Spending",
   social: "Social",
-  leaderboard: "Leaderboard",
+  leaderboard: LEADERBOARD_NAME,
   habit: "Habits",
 };
 
@@ -653,7 +654,8 @@ export const ACHIEVEMENTS: readonly AchievementDefinition[] = [
     group: "spending",
     progress: (c) => {
       const share = c.breakdown.find((entry) => entry.category === "MAC")?.share ?? 0;
-      return c.score > 0 && share > 0.5 ? 1 : ratio(share, 0.5);
+      // A strict majority unlocks; exactly half shows as 99%.
+      return c.score > 0 && share > 0.5 ? 1 : Math.min(0.99, ratio(share, 0.5));
     },
   },
 
@@ -747,9 +749,17 @@ export function evaluateAchievements(context: AchievementContext): AchievementEv
   });
 }
 
-/** Ids whose condition currently holds. */
-export function unlockedIds(context: AchievementContext): string[] {
-  return evaluateAchievements(context)
-    .filter((evaluation) => evaluation.unlocked)
-    .map((evaluation) => evaluation.id);
+/**
+ * Ids whose condition currently holds. With `groups`, only those groups are
+ * evaluated, so a caller with a partial context (say, follow counts only)
+ * never trips a rule it did not provide inputs for.
+ */
+export function unlockedIds(
+  context: AchievementContext,
+  groups?: readonly AchievementGroup[]
+): string[] {
+  const allowed = groups ? new Set<AchievementGroup>(groups) : null;
+  return ACHIEVEMENTS.filter((definition) => allowed === null || allowed.has(definition.group))
+    .filter((definition) => definition.progress(context) >= 1)
+    .map((definition) => definition.id);
 }

@@ -91,18 +91,17 @@ export function CategoryDonut({ breakdown, className, compact = false }: Categor
               strokeDasharray={`${slice.dash} ${CIRCUMFERENCE - slice.dash}`}
               strokeDashoffset={0}
               transform={`rotate(${slice.rotate - 90} ${SIZE / 2} ${SIZE / 2})`}
-              className="cursor-pointer transition-[stroke-width,opacity] duration-200"
+              className="transition-[stroke-width,opacity] duration-200"
               opacity={active === null || active === slice.index ? 1 : 0.45}
               onPointerEnter={() => setActive(slice.index)}
               onPointerLeave={() => setActive(null)}
-              onFocus={() => setActive(slice.index)}
-              onBlur={() => setActive(null)}
-              tabIndex={0}
-              aria-label={`${CATEGORY_LABEL[slice.entry.category]}: ${formatUSD(slice.entry.total)}, ${Math.round(slice.share * 100)}%`}
             />
           ))}
         </svg>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+        <div
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center"
+          aria-hidden="true"
+        >
           {shown ? (
             <>
               <p className="text-[11px] font-medium text-muted-foreground">

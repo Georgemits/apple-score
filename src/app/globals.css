@@ -30,7 +30,8 @@
     --muted: 240 5% 95%;
     --muted-foreground: 240 4% 44%;
 
-    --accent: 211 100% 50%;
+    /* 42% lightness keeps 12–14px accent text at AA contrast on white. */
+    --accent: 211 100% 42%;
     --accent-foreground: 0 0% 100%;
 
     --success: 142 72% 32%;
@@ -302,12 +303,33 @@
       padding-bottom: 0;
     }
   }
+
+  /* sonner switches to its desktop offset at 601px, but the tab bar stays
+     until 768px; keep toasts above it in that band too. */
+  @media (min-width: 601px) and (max-width: 767px) {
+    body.pb-tabbar [data-sonner-toaster][data-y-position="bottom"] {
+      --offset-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
+  }
 }
 
 @keyframes shine {
   to {
     transform: translateX(120%);
   }
+}
+
+/* Pending-navigation spinners wait a beat so quick hops never flash one. */
+@keyframes link-pending {
+  to {
+    opacity: 1;
+  }
+}
+.link-pending {
+  opacity: 0;
+  animation:
+    link-pending 0s 160ms forwards,
+    spin 1s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { LEADERBOARD_NAME } from "@/lib/branding";
 import { getStanding } from "@/lib/leaderboard";
 import { getProfile, getUnlockedAchievements } from "@/lib/queries";
-import { formatUSD } from "@/lib/utils";
+import { formatUSD, profileName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
@@ -30,10 +30,6 @@ function loadPair(a: string, b: string, viewerId: string | null) {
   return Promise.all([getProfile(a, viewerId), getProfile(b, viewerId)]);
 }
 
-function displayName(user: { displayName: string | null; username: string }): string {
-  return user.displayName ?? `@${user.username}`;
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { username, other } = await params;
   const session = await auth();
@@ -45,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const gap = Math.abs(left.stats.score - right.stats.score);
   const [leader, trailer] =
     left.stats.score >= right.stats.score ? [left.user, right.user] : [right.user, left.user];
-  const description = `Apple Score head-to-head: ${displayName(left.user)} (${formatUSD(left.stats.score)}) vs ${displayName(right.user)} (${formatUSD(right.stats.score)}). ${compareVerdict(leader.username, trailer.username, gap, left.user.id === right.user.id)}`;
+  const description = `Apple Score head-to-head: ${profileName(left.user)} (${formatUSD(left.stats.score)}) vs ${profileName(right.user)} (${formatUSD(right.stats.score)}). ${compareVerdict(leader.username, trailer.username, gap, left.user.id === right.user.id)}`;
   const isPublic = left.user.isPublic && right.user.isPublic;
 
   return {

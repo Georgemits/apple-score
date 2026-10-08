@@ -31,7 +31,8 @@ friends, and fight for a spot on **Band for Band** — the global leaderboard.
   AirPods), with rarity and "N% of collectors have this".
 - **Profiles & share cards** — public profiles at `/u/<username>` with Open
   Graph previews, downloadable score cards for Instagram, X, Discord and
-  Messages, and head-to-head compare pages (`/u/you/vs/them`).
+  Messages, head-to-head compare pages (`/u/you/vs/them`) and follower and
+  following lists.
 - **Dashboard** — score history chart, spending by category, your standing,
   recent activity, what's next, quick add.
 - **What-if simulator** — a wishlist that tells you the score and rank each
@@ -235,6 +236,9 @@ line art from `public/product-art/`.
   initials on the card (it still renders everywhere else).
 - **Rate limiting fails open.** If the database is unreachable the limiter
   logs and allows the request; sign-in itself still needs the database.
+- **Products are never deleted.** Discontinued products are flagged `legacy`;
+  activity history stores score snapshots, so removing a product row would
+  make history disagree with the live score.
 
 ## Disclaimer
 

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ArrowUpDown, ChevronDown } from "lucide-react";
-import { Chip } from "@/components/catalog/chip";
+import { Chip } from "@/components/ui/chip";
 import {
   OWNED_OPTIONS,
   SORT_OPTIONS,
@@ -81,7 +81,7 @@ export function FilterBar({
           onChange={(event) => {
             if (isSortKey(event.target.value)) onSortChange(event.target.value);
           }}
-          className="h-11 appearance-none rounded-full border border-border/70 bg-background/60 pl-10 pr-9 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-9"
+          className="h-11 appearance-none rounded-full border border-border/70 bg-background/60 pl-10 pr-9 text-base font-medium text-foreground backdrop-blur transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-9 sm:text-sm"
         >
           {SORT_OPTIONS.map((option) => (
             <option key={option.key} value={option.key}>

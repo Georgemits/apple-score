@@ -306,18 +306,19 @@ export function ProfileForm({ user }: { user: ProfileFormUser }) {
           {isDirty ? "You have unsaved changes." : "Everything is saved."}
         </p>
         <div className="flex flex-col-reverse gap-2 sm:flex-row">
-          {isDirty && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => reset()}
-              disabled={busy}
-              className="w-full sm:w-auto"
-            >
-              <RotateCcw aria-hidden="true" />
-              Discard
-            </Button>
-          )}
+          {/* Always mounted: unmounting on click would drop keyboard focus. */}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              if (isDirty && !busy) reset();
+            }}
+            aria-disabled={!isDirty || busy || undefined}
+            className="w-full aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:w-auto"
+          >
+            <RotateCcw aria-hidden="true" />
+            Discard
+          </Button>
           <Button type="submit" disabled={busy} className="w-full sm:w-auto">
             {busy ? (
               <Loader2 className="animate-spin" aria-hidden="true" />

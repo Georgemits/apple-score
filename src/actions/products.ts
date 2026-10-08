@@ -1,11 +1,15 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { auth } from "@/auth";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { calculateScore, milestoneReached, tierFor, type Milestone } from "@/lib/score";
-import { getStanding } from "@/lib/leaderboard";
-import { syncAchievements, type UnlockSummary } from "@/lib/achievement-sync";
+import { requireUser, type SessionUser } from "@/lib/session";
+import { calculateScore, lineTotal, milestoneReached, tierFor, type Milestone } from "@/lib/score";
+import {
+  buildAchievementContext,
+  syncAchievements,
+  type UnlockSummary,
+} from "@/lib/achievement-sync";
 import {
   addProductSchema,
   onboardingSchema,
@@ -14,6 +18,7 @@ import {
   updateOwnedItemSchema,
   MAX_QUANTITY,
 } from "@/lib/validations";
+import { formatNumber, formatUSD } from "@/lib/utils";
 import { failure, type ActionResult } from "@/actions/types";
 
 /** What every inventory action reports back, so the UI can celebrate properly. */
@@ -31,20 +36,13 @@ export type ScoreUpdate = {
   rank: { rank: number; total: number } | null;
 };
 
-type Session = { ok: true; userId: string; username: string } | { ok: false; error: string };
-
-async function requireUser(): Promise<Session> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { ok: false, error: "You need to be signed in to do that." };
-  }
-  return { ok: true, userId: session.user.id, username: session.user.username };
-}
+const SIGNED_OUT = "You need to be signed in to do that.";
 
 function revalidate(username: string) {
   revalidatePath("/home");
   revalidatePath("/collection");
   revalidatePath("/catalog");
+  revalidatePath("/wishlist");
   revalidatePath("/profile");
   revalidatePath("/achievements");
   revalidatePath("/leaderboard");
@@ -52,101 +50,159 @@ function revalidate(username: string) {
   revalidateTag("community");
 }
 
+/**
+ * One ownership change. Either an absolute target (`quantity`, 0 removes the
+ * row) or a relative one (`add`, negative to remove units). Relative changes
+ * are resolved *inside* the transaction, so two overlapping taps on "+ Add"
+ * cannot both read the same starting quantity.
+ */
 type Change = {
   productId: string;
-  /** Desired quantity after the change. 0 removes the row. */
-  quantity: number;
+  quantity?: number;
+  add?: number;
   /** `undefined` leaves the recorded price alone; null resets to MSRP. */
   pricePaidUSD?: number | null;
 };
 
 type Applied = { before: number; after: number; productCount: number };
 
+/** Thrown inside the transaction so Prisma rolls the whole batch back. */
+class ChangeError extends Error {
+  constructor(
+    message: string,
+    readonly fieldErrors?: Record<string, string[]>
+  ) {
+    super(message);
+    this.name = "ChangeError";
+  }
+}
+
+const MAX_ATTEMPTS = 3;
+
+function isSerializationFailure(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+}
+
 /**
  * Applies a set of ownership changes atomically and appends one activity
- * event per change. Returns the score before and after.
+ * event per change. Runs at SERIALIZABLE isolation and retries on write
+ * conflicts, so concurrent changes to the same collection serialise instead
+ * of losing units. Returns the score before and after.
  */
 async function applyChanges(
   userId: string,
-  changes: Change[]
-): Promise<Applied | { error: string }> {
-  return prisma.$transaction(async (tx) => {
-    const inventory = await tx.userProduct.findMany({
-      where: { userId },
-      include: { product: { select: { priceUSD: true, name: true } } },
-    });
-    const owned = new Map(inventory.map((item) => [item.productId, item]));
-    const before = calculateScore(inventory.filter((item) => item.quantity > 0));
-    let running = before;
+  changes: Change[],
+  options: { markOnboarded?: boolean } = {}
+): Promise<Applied> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const inventory = await tx.userProduct.findMany({
+            where: { userId },
+            include: { product: { select: { priceUSD: true, name: true } } },
+          });
+          const owned = new Map(inventory.map((item) => [item.productId, item]));
+          const before = calculateScore(inventory.filter((item) => item.quantity > 0));
+          let running = before;
 
-    for (const change of changes) {
-      const current = owned.get(change.productId);
-      const product =
-        current?.product ??
-        (await tx.product.findUnique({
-          where: { id: change.productId },
-          select: { priceUSD: true, name: true },
-        }));
-      if (!product) return { error: "That product no longer exists." };
+          for (const change of changes) {
+            const current = owned.get(change.productId);
+            const product =
+              current?.product ??
+              (await tx.product.findUnique({
+                where: { id: change.productId },
+                select: { priceUSD: true, name: true },
+              }));
+            if (!product) throw new ChangeError("That product no longer exists.");
 
-      const previousQuantity = current?.quantity ?? 0;
-      const previousPrice = current?.pricePaidUSD ?? null;
-      const nextQuantity = Math.min(change.quantity, MAX_QUANTITY);
-      const nextPrice = change.pricePaidUSD === undefined ? previousPrice : change.pricePaidUSD;
+            const previousQuantity = current?.quantity ?? 0;
+            const previousPrice = current?.pricePaidUSD ?? null;
 
-      const previousLine = (previousPrice ?? product.priceUSD) * previousQuantity;
-      const nextLine = (nextPrice ?? product.priceUSD) * nextQuantity;
-      const scoreDelta = nextLine - previousLine;
-      const quantityDelta = nextQuantity - previousQuantity;
+            const target =
+              change.add !== undefined ? previousQuantity + change.add : (change.quantity ?? 0);
+            if (target > MAX_QUANTITY) {
+              throw new ChangeError(
+                `You can track at most ${formatNumber(MAX_QUANTITY)} of one product.`,
+                { quantity: [`At most ${formatNumber(MAX_QUANTITY)} in total.`] }
+              );
+            }
+            if (change.add !== undefined && change.add < 0 && !current) {
+              throw new ChangeError("You do not own that product.");
+            }
+            const nextQuantity = Math.max(0, target);
+            const nextPrice =
+              change.pricePaidUSD === undefined ? previousPrice : change.pricePaidUSD;
 
-      if (quantityDelta === 0 && scoreDelta === 0) continue;
+            // One formula for the whole app lives in lib/score.
+            const previousLine = lineTotal({
+              quantity: previousQuantity,
+              pricePaidUSD: previousPrice,
+              product,
+            });
+            const nextLine = lineTotal({
+              quantity: nextQuantity,
+              pricePaidUSD: nextPrice,
+              product,
+            });
+            const scoreDelta = nextLine - previousLine;
+            const quantityDelta = nextQuantity - previousQuantity;
 
-      if (nextQuantity === 0) {
-        await tx.userProduct.deleteMany({ where: { userId, productId: change.productId } });
-        owned.delete(change.productId);
-      } else {
-        const row = await tx.userProduct.upsert({
-          where: { userId_productId: { userId, productId: change.productId } },
-          update: { quantity: nextQuantity, pricePaidUSD: nextPrice },
-          create: {
-            userId,
-            productId: change.productId,
-            quantity: nextQuantity,
-            pricePaidUSD: nextPrice,
-          },
-          include: { product: { select: { priceUSD: true, name: true } } },
-        });
-        owned.set(change.productId, row);
-      }
+            if (quantityDelta === 0 && scoreDelta === 0) continue;
 
-      running += scoreDelta;
+            if (nextQuantity === 0) {
+              await tx.userProduct.deleteMany({ where: { userId, productId: change.productId } });
+              owned.delete(change.productId);
+            } else {
+              const row = await tx.userProduct.upsert({
+                where: { userId_productId: { userId, productId: change.productId } },
+                update: { quantity: nextQuantity, pricePaidUSD: nextPrice },
+                create: {
+                  userId,
+                  productId: change.productId,
+                  quantity: nextQuantity,
+                  pricePaidUSD: nextPrice,
+                },
+                include: { product: { select: { priceUSD: true, name: true } } },
+              });
+              owned.set(change.productId, row);
+            }
 
-      await tx.activityEvent.create({
-        data: {
-          userId,
-          productId: change.productId,
-          productName: product.name,
-          type: quantityDelta > 0 ? "ADD" : quantityDelta < 0 ? "REMOVE" : "REPRICE",
-          quantityDelta,
-          scoreDelta,
-          scoreAfter: running,
+            running += scoreDelta;
+
+            await tx.activityEvent.create({
+              data: {
+                userId,
+                productId: change.productId,
+                productName: product.name,
+                type: quantityDelta > 0 ? "ADD" : quantityDelta < 0 ? "REMOVE" : "REPRICE",
+                quantityDelta,
+                scoreDelta,
+                scoreAfter: running,
+              },
+            });
+          }
+
+          if (options.markOnboarded) {
+            await tx.user.update({ where: { id: userId }, data: { onboardedAt: new Date() } });
+          }
+
+          const productCount = [...owned.values()].reduce((sum, item) => sum + item.quantity, 0);
+          return { before, after: running, productCount };
         },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+      );
+    } catch (error) {
+      if (isSerializationFailure(error) && attempt < MAX_ATTEMPTS) continue;
+      throw error;
     }
-
-    const productCount = [...owned.values()].reduce((sum, item) => sum + item.quantity, 0);
-    return { before, after: running, productCount };
-  });
+  }
 }
 
-async function finish(
-  session: Extract<Session, { ok: true }>,
-  applied: Applied
-): Promise<ActionResult<ScoreUpdate>> {
-  const [unlocked, standing] = await Promise.all([
-    syncAchievements(session.userId),
-    getStanding(session.userId),
-  ]);
+async function finish(session: SessionUser, applied: Applied): Promise<ActionResult<ScoreUpdate>> {
+  // The context already holds the user's standing, so the ranking query runs once.
+  const context = await buildAchievementContext(session.userId);
+  const unlocked = await syncAchievements(session.userId, { context });
   revalidate(session.username);
 
   const beforeTier = tierFor(applied.before);
@@ -164,20 +220,21 @@ async function finish(
           ? { name: afterTier.name, emoji: afterTier.emoji }
           : null,
       unlocked,
-      rank: standing ? { rank: standing.me.rank, total: standing.me.total } : null,
+      rank: context.rank !== null ? { rank: context.rank, total: context.totalUsers } : null,
     },
   };
 }
 
-async function runChanges(changes: Change[]): Promise<ActionResult<ScoreUpdate>> {
-  const session = await requireUser();
-  if (!session.ok) return failure(session.error);
-
+async function runChanges(
+  session: SessionUser,
+  changes: Change[],
+  options: { markOnboarded?: boolean } = {}
+): Promise<ActionResult<ScoreUpdate>> {
   try {
-    const applied = await applyChanges(session.userId, changes);
-    if ("error" in applied) return failure(applied.error);
+    const applied = await applyChanges(session.userId, changes, options);
     return await finish(session, applied);
   } catch (error) {
+    if (error instanceof ChangeError) return failure(error.message, error.fieldErrors);
     console.error("inventory action:", error);
     return failure("Could not update your collection. Please try again.");
   }
@@ -191,20 +248,31 @@ export async function addProductAction(input: unknown): Promise<ActionResult<Sco
   }
 
   const session = await requireUser();
-  if (!session.ok) return failure(session.error);
+  if (!session) return failure(SIGNED_OUT);
 
   const { productId, quantity, pricePaidUSD } = parsed.data;
-  const existing = await prisma.userProduct.findUnique({
-    where: { userId_productId: { userId: session.userId, productId } },
-    select: { quantity: true },
-  });
 
-  return runChanges([
-    {
-      productId,
-      quantity: (existing?.quantity ?? 0) + quantity,
-      ...(pricePaidUSD === undefined ? {} : { pricePaidUSD }),
-    },
+  // A line holds one price for every unit, so a different price for extra
+  // units would silently re-price the ones already owned.
+  if (pricePaidUSD !== undefined) {
+    const existing = await prisma.userProduct.findUnique({
+      where: { userId_productId: { userId: session.userId, productId } },
+      select: { pricePaidUSD: true, product: { select: { priceUSD: true } } },
+    });
+    if (existing) {
+      const currentUnit = existing.pricePaidUSD ?? existing.product.priceUSD;
+      const requestedUnit = pricePaidUSD ?? existing.product.priceUSD;
+      if (currentUnit !== requestedUnit) {
+        return failure(
+          `You already own this at ${formatUSD(currentUnit)} per unit. Change the price from your collection instead.`,
+          { pricePaidUSD: [`Already recorded at ${formatUSD(currentUnit)} per unit.`] }
+        );
+      }
+    }
+  }
+
+  return runChanges(session, [
+    { productId, add: quantity, ...(pricePaidUSD === undefined ? {} : { pricePaidUSD }) },
   ]);
 }
 
@@ -214,7 +282,11 @@ export async function setQuantityAction(input: unknown): Promise<ActionResult<Sc
   if (!parsed.success) {
     return failure("Invalid quantity.", parsed.error.flatten().fieldErrors);
   }
-  return runChanges([parsed.data]);
+
+  const session = await requireUser();
+  if (!session) return failure(SIGNED_OUT);
+
+  return runChanges(session, [parsed.data]);
 }
 
 /**
@@ -227,7 +299,11 @@ export async function updateOwnedItemAction(input: unknown): Promise<ActionResul
   if (!parsed.success) {
     return failure("Invalid quantity or price.", parsed.error.flatten().fieldErrors);
   }
-  return runChanges([parsed.data]);
+
+  const session = await requireUser();
+  if (!session) return failure(SIGNED_OUT);
+
+  return runChanges(session, [parsed.data]);
 }
 
 /** Removes a single unit, deleting the row when the last one goes. */
@@ -236,26 +312,25 @@ export async function removeOneAction(input: unknown): Promise<ActionResult<Scor
   if (!parsed.success) return failure("Invalid product.");
 
   const session = await requireUser();
-  if (!session.ok) return failure(session.error);
+  if (!session) return failure(SIGNED_OUT);
 
-  const owned = await prisma.userProduct.findUnique({
-    where: { userId_productId: { userId: session.userId, productId: parsed.data.productId } },
-    select: { quantity: true },
-  });
-  if (!owned) return failure("You do not own that product.");
-
-  return runChanges([{ productId: parsed.data.productId, quantity: owned.quantity - 1 }]);
+  return runChanges(session, [{ productId: parsed.data.productId, add: -1 }]);
 }
 
 /** Removes the product and every unit of it. */
 export async function removeProductAction(input: unknown): Promise<ActionResult<ScoreUpdate>> {
   const parsed = productIdSchema.safeParse(input);
   if (!parsed.success) return failure("Invalid product.");
-  return runChanges([{ productId: parsed.data.productId, quantity: 0 }]);
+
+  const session = await requireUser();
+  if (!session) return failure(SIGNED_OUT);
+
+  return runChanges(session, [{ productId: parsed.data.productId, quantity: 0 }]);
 }
 
 /**
- * The welcome flow: adds several products at once and marks onboarding done.
+ * The welcome flow: adds several products at once and marks onboarding done
+ * in the same transaction, so a failed batch leaves nothing half-applied.
  * Quantities are added on top of anything already owned.
  */
 export async function completeOnboardingAction(input: unknown): Promise<ActionResult<ScoreUpdate>> {
@@ -263,48 +338,13 @@ export async function completeOnboardingAction(input: unknown): Promise<ActionRe
   if (!parsed.success) return failure("Pick valid products to start with.");
 
   const session = await requireUser();
-  if (!session.ok) return failure(session.error);
+  if (!session) return failure(SIGNED_OUT);
 
   const merged = new Map<string, number>();
   for (const item of parsed.data.items) {
     merged.set(item.productId, (merged.get(item.productId) ?? 0) + item.quantity);
   }
+  const changes: Change[] = [...merged.entries()].map(([productId, add]) => ({ productId, add }));
 
-  const existing = await prisma.userProduct.findMany({
-    where: { userId: session.userId, productId: { in: [...merged.keys()] } },
-    select: { productId: true, quantity: true },
-  });
-  const ownedNow = new Map(existing.map((row) => [row.productId, row.quantity]));
-
-  const changes: Change[] = [...merged.entries()].map(([productId, quantity]) => ({
-    productId,
-    quantity: (ownedNow.get(productId) ?? 0) + quantity,
-  }));
-
-  await prisma.user.update({
-    where: { id: session.userId },
-    data: { onboardedAt: new Date() },
-  });
-
-  if (changes.length === 0) {
-    revalidate(session.username);
-    const [standing, stats] = await Promise.all([
-      getStanding(session.userId),
-      prisma.userProduct.aggregate({ where: { userId: session.userId }, _sum: { quantity: true } }),
-    ]);
-    return {
-      ok: true,
-      data: {
-        score: standing?.me.score ?? 0,
-        productCount: stats._sum.quantity ?? 0,
-        delta: 0,
-        milestone: null,
-        tier: null,
-        unlocked: [],
-        rank: standing ? { rank: standing.me.rank, total: standing.me.total } : null,
-      },
-    };
-  }
-
-  return runChanges(changes);
+  return runChanges(session, changes, { markOnboarded: true });
 }

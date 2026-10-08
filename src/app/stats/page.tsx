@@ -11,7 +11,7 @@ import {
 import { getPodium } from "@/lib/leaderboard";
 import { CATEGORY_EMOJI, CATEGORY_LABEL, CATEGORY_SLUG } from "@/lib/categories";
 import { LEADERBOARD_NAME } from "@/lib/branding";
-import { formatCompactUSD, formatNumber, formatUSD, pluralize } from "@/lib/utils";
+import { formatCompactUSD, formatNumber, formatUSD, pluralize, profileName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
@@ -112,7 +112,7 @@ export default async function StatsPage() {
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Where the money goes</CardTitle>
@@ -136,7 +136,7 @@ export default async function StatsPage() {
                         >
                           {CATEGORY_LABEL[entry.category]}
                         </Link>
-                        <span className="tabular text-xs text-muted-foreground">
+                        <span className="tabular hidden text-xs text-muted-foreground sm:inline">
                           {pluralize(entry.owners, "collector")}
                         </span>
                         <span className="tabular w-20 text-right font-semibold">
@@ -228,9 +228,7 @@ export default async function StatsPage() {
                   className="card-hover glass flex flex-col items-center gap-2 rounded-xl p-4 text-center"
                 >
                   <UserAvatar user={user} size={48} />
-                  <span className="w-full truncate text-sm font-medium">
-                    {user.displayName ?? `@${user.username}`}
-                  </span>
+                  <span className="w-full truncate text-sm font-medium">{profileName(user)}</span>
                 </Link>
               </li>
             ))}

@@ -107,7 +107,7 @@ export function Sparkline({
     <div className={cn("relative", className)}>
       <div
         ref={containerRef}
-        className="relative w-full"
+        className="relative w-full rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         onPointerMove={handleMove}
         onPointerLeave={() => setHover(null)}
         tabIndex={0}
@@ -119,7 +119,7 @@ export function Sparkline({
         }}
         onBlur={() => setHover(null)}
         aria-label={`${label}. Use the arrow keys to inspect points.`}
-        role="img"
+        role="group"
       >
         <svg
           viewBox={`0 0 ${width} ${height}`}
@@ -188,19 +188,32 @@ export function Sparkline({
           />
         )}
 
-        {active && (
-          <div
-            className="pointer-events-none absolute z-10 -translate-x-1/2 rounded-lg border border-border bg-popover px-2.5 py-1.5 text-xs shadow-lg"
-            style={{
-              left: `clamp(3.5rem, ${(geometry.x(active.at) / width) * 100}%, calc(100% - 3.5rem))`,
-              top: 0,
-            }}
-            role="status"
-          >
-            <p className="font-semibold">{formatUSD(active.score)}</p>
-            <p className="text-muted-foreground">{formatDate(new Date(active.at))}</p>
-          </div>
-        )}
+        {/* Always mounted: a live region inserted with its text already present
+            is not announced by every screen reader, so the first arrow press
+            would be silent. */}
+        <div
+          role="status"
+          className={
+            active
+              ? "pointer-events-none absolute z-10 -translate-x-1/2 rounded-lg border border-border bg-popover px-2.5 py-1.5 text-xs shadow-lg"
+              : "sr-only"
+          }
+          style={
+            active
+              ? {
+                  left: `clamp(3.5rem, ${(geometry.x(active.at) / width) * 100}%, calc(100% - 3.5rem))`,
+                  top: 0,
+                }
+              : undefined
+          }
+        >
+          {active && (
+            <>
+              <p className="font-semibold">{formatUSD(active.score)}</p>
+              <p className="text-muted-foreground">{formatDate(new Date(active.at))}</p>
+            </>
+          )}
+        </div>
       </div>
 
       {showScale && (

@@ -111,6 +111,7 @@ tests/
 | `/u/<username>`                                        | public\* | Social profile with OG image (`opengraph-image.tsx`)        |
 | `/u/<username>/card`                                   | public\* | Share cards (OG, square, story) with download and share     |
 | `/u/<a>/vs/<b>`                                        | public\* | Head-to-head comparison                                     |
+| `/u/<username>/followers`, `…/following`               | public\* | Who follows a collector, and who they follow                |
 | `/p/<slug>`                                            | public   | Product page: price, owners, siblings, add/wishlist         |
 | `/stats`                                               | public   | Community census                                            |
 | `/settings`, `/profile`                                | members  | Profile editor, password, export, delete; `/profile` → own  |
@@ -223,15 +224,32 @@ minute. Secret achievements are masked until unlocked.
   (0–50,000), bio (160), display name (40), onboarding batch (12).
 - Errors: server actions log and return generic messages; `error.tsx` shows a
   digest, never a stack.
+- Accepted trade-offs: sign-up says when an email is already registered (an
+  enumeration vector, bounded by the 5/hour sign-up limit; sign-in never
+  confirms it). Catalogue products are never deleted — `legacy` marks
+  discontinued ones — because `ActivityEvent.scoreAfter` is a snapshot, and
+  removing a product would make stored history disagree with the recomputed
+  score. There is deliberately no admin path for it.
 
 ## Caching
 
 - The catalogue, ownership counts, achievement rarity and community stats use
   `unstable_cache` with a 60 s TTL and tags (`catalogue`, `community`) that
   actions revalidate.
-- Pages that read the session are dynamic. Public profile pages respond 404
-  for unknown users because they have no `loading.tsx` boundary (a streamed
-  shell would commit a 200 before `notFound()` runs).
+- `getInventory` and `getStanding` are wrapped in React `cache()`, so a
+  dashboard render or an inventory action that needs both the standing and
+  the achievement context runs the ranking query once per request.
+- Score history is bounded on the server (newest 2,000 events, sampled to 240
+  points) so a prolific collector never ships thousands of points to the
+  sparkline.
+- Pages that read the session are dynamic. Profile and product pages respond
+  404 for unknown slugs because they have no `loading.tsx` boundary (a
+  streamed shell would commit a 200 before `notFound()` runs); links to them
+  show an inline pending spinner (`LinkPending`) instead.
+- The leaderboard page runs the ranking query twice for signed-in viewers
+  (the page and the viewer's standing) in parallel. Deriving the standing from
+  the fetched page would save a query only when the viewer is on that page,
+  and would serialise the two requests otherwise, so it is left parallel.
 
 ## Testing
 

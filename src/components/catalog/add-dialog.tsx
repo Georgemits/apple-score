@@ -53,7 +53,7 @@ export function AddDialog({ item, currentScore, onClose }: AddDialogProps) {
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+      <DialogContent>
         {shown && (
           <AddDialogBody
             key={shown.id}
@@ -75,6 +75,20 @@ type SimulationStatus = "loading" | "ready" | "error";
 
 /** Quantity changes re-run the simulator after this pause. */
 const REFETCH_DELAY_MS = 350;
+/** The screen-reader summary waits this long after the last change. */
+const ANNOUNCE_DELAY_MS = 600;
+
+/** The rank sentence, in words, for the live region. */
+function describeRank(simulation: Simulation): string {
+  const { projectedRank, currentRank, positionsGained } = simulation;
+  if (projectedRank === null) return "Private profiles don't rank.";
+  const spot = `#${formatNumber(projectedRank.rank)} of ${formatNumber(projectedRank.total)}`;
+  if (currentRank === null) return `You'd enter ${LEADERBOARD_NAME} at ${spot}.`;
+  if (positionsGained !== null && positionsGained > 0) {
+    return `You'd move to ${spot}, up ${formatNumber(positionsGained)}.`;
+  }
+  return `You'd stay at ${spot}.`;
+}
 const SIMULATE_TOAST_ID = "catalog-simulate";
 
 type AddDialogBodyProps = {
@@ -140,6 +154,18 @@ function AddDialogBody({ item, currentScore, onClose }: AddDialogBodyProps) {
       requestRef.current += 1;
     };
   }, [item.id, quantity, attempt]);
+
+  /* --------------------------------------------------------- announcement */
+  // One polite region, updated a beat after the last change, so typing a
+  // price or stepping the quantity does not read the whole preview aloud
+  // on every keystroke.
+  const [announcement, setAnnouncement] = React.useState("");
+  React.useEffect(() => {
+    if (status !== "ready" || !simulation) return;
+    const message = `Adds ${formatUSD(added)}. New score ${formatUSD(currentScore + added)}. ${describeRank(simulation)}`;
+    const timer = setTimeout(() => setAnnouncement(message), ANNOUNCE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [status, simulation, added, currentScore]);
 
   /* -------------------------------------------------------------- confirm */
   const confirm = () => {
@@ -270,13 +296,16 @@ function AddDialogBody({ item, currentScore, onClose }: AddDialogBodyProps) {
       </div>
 
       <div className="rounded-xl bg-secondary/60 px-4 py-3">
-        <p className="text-sm" aria-live="polite" aria-atomic="true">
+        <p className="text-sm">
           Adds <span className="tabular font-semibold">{formatUSD(added)}</span> to your score
           <span aria-hidden="true"> → </span>
           <span className="sr-only">, </span>
           new score <span className="tabular font-semibold">{formatUSD(currentScore + added)}</span>
         </p>
-        <div className="mt-2 border-t border-border/60 pt-2" aria-live="polite" aria-atomic="true">
+        <p className="sr-only" role="status" aria-atomic="true">
+          {announcement}
+        </p>
+        <div className="mt-2 border-t border-border/60 pt-2">
           <RankPreview
             status={status}
             simulation={simulation}
@@ -340,6 +369,13 @@ function RankPreview({ status, simulation, customPrice, onRetry }: RankPreviewPr
   }
 
   const { projectedRank, currentRank, positionsGained } = simulation;
+  if (projectedRank === null) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Private profiles don&apos;t rank. Make yours public in Settings to join {LEADERBOARD_NAME}.
+      </p>
+    );
+  }
   const spot = (
     <span className="tabular font-semibold text-foreground">
       #{formatNumber(projectedRank.rank)} of {formatNumber(projectedRank.total)}
@@ -365,7 +401,7 @@ function RankPreview({ status, simulation, customPrice, onRetry }: RankPreviewPr
           <>You&apos;d stay at {spot} — same spot, bigger number.</>
         )}
         {status === "loading" && (
-          <LoaderCircle className="size-3.5 animate-spin" aria-label="Updating" />
+          <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
         )}
       </p>
       {customPrice && <p className="mt-1 text-xs">Rank preview uses the launch price.</p>}

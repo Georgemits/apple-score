@@ -10,7 +10,7 @@ type ChipProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> & {
   size?: "md" | "sm";
 };
 
-/** A pill toggle. Tap targets stay ≥ 44px on phones and tighten up on desktop. */
+/** A pill toggle with `aria-pressed`. Tap targets stay ≥ 44px on phones and tighten up on desktop. */
 export function Chip({
   active = false,
   count,
@@ -42,5 +42,23 @@ export function Chip({
         </span>
       )}
     </button>
+  );
+}
+
+type ChipRowProps = {
+  label: string;
+  children: React.ReactNode;
+};
+
+/** A horizontally scrolling chip row with faded edges on phones; wraps on wider screens. */
+export function ChipRow({ label, children }: ChipRowProps) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="scrollbar-none fade-x -mx-4 flex gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:[mask-image:none]"
+    >
+      {children}
+    </div>
   );
 }

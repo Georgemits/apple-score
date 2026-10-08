@@ -16,7 +16,7 @@ import { avatarGradient } from "@/components/user-avatar";
 import { CATEGORY_LABEL } from "@/lib/categories";
 import type { Standing } from "@/lib/leaderboard";
 import type { Profile } from "@/lib/queries";
-import { formatNumber, formatUSD, initials } from "@/lib/utils";
+import { formatNumber, formatUSD, initials, profileName } from "@/lib/utils";
 
 /**
  * Share cards — the PNGs behind `/api/card/[username]`, the profile Open Graph
@@ -437,7 +437,7 @@ export function ShareCard({ data, format }: { data: ShareCardData; format: Share
 
   const figure = formatUSD(data.score);
   const figureSize = fitFigure(figure, contentWidth, m.figure);
-  const name = data.displayName ?? `@${data.username}`;
+  const name = profileName(data);
 
   const identity = stacked ? (
     <div style={{ display: "flex", flexDirection: "column" }}>

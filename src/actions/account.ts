@@ -2,19 +2,14 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import bcrypt from "bcryptjs";
-import { auth, signOut, updateSession } from "@/auth";
+import { signOut, updateSession } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/session";
 import { rateLimit, retryMessage } from "@/lib/rate-limit";
 import { changePasswordSchema, deleteAccountSchema, profileSchema } from "@/lib/validations";
 import { failure, type ActionResult } from "@/actions/types";
 
 const BCRYPT_ROUNDS = 12;
-
-async function requireUser() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  return { userId: session.user.id, username: session.user.username };
-}
 
 export async function updateProfileAction(input: unknown): Promise<ActionResult> {
   const parsed = profileSchema.safeParse(input);

@@ -180,13 +180,6 @@ export function tierFor(score: number): Tier {
   return current;
 }
 
-/** The tier after the current one, or null at the top. */
-export function nextTier(score: number): Tier | null {
-  const current = tierFor(score);
-  const index = TIERS.findIndex((tier) => tier.id === current.id);
-  return TIERS[index + 1] ?? null;
-}
-
 /* -------------------------------------------------------------------------
  * Percentile
  * ---------------------------------------------------------------------- */

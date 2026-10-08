@@ -15,10 +15,10 @@ import {
   getUnlockedAchievements,
   isFollowing,
 } from "@/lib/queries";
-import { formatNumber, formatUSD, pluralize } from "@/lib/utils";
+import { formatNumber, formatUSD, pluralize, profileName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
-import { ProfileHero, profileName, type ProfileViewer } from "@/components/profile/profile-hero";
+import { ProfileHero, type ProfileViewer } from "@/components/profile/profile-hero";
 import { ProfileStats } from "@/components/profile/profile-stats";
 import { CategoryCard, HistoryCard } from "@/components/profile/profile-charts";
 import { CollectionShowcase } from "@/components/profile/collection-showcase";

@@ -4,16 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getAchievementDefinition } from "@/lib/achievements";
 import { getActivity, getInventory, getUnlockedAchievements, summarize } from "@/lib/queries";
 import { lineTotal, unitPrice } from "@/lib/score";
+import { safeFilename } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 /** How much of the activity log goes in the file. */
 const ACTIVITY_LIMIT = 500;
-
-/** Keeps the download filename to characters every OS accepts. */
-function safeFilename(username: string): string {
-  return username.toLowerCase().replace(/[^a-z0-9_-]/g, "") || "collector";
-}
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
 

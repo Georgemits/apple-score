@@ -5,16 +5,18 @@ import { ArrowLeft, Calendar, Layers, Tag, Users } from "lucide-react";
 import { auth } from "@/auth";
 import {
   getCatalogue,
-  getOwnedQuantities,
+  getInventory,
   getOwnershipCounts,
   getProductBySlug,
   getProductOwners,
-  getUserStats,
   getWishlistIds,
+  ownedQuantities,
+  summarize,
+  type InventoryItem,
 } from "@/lib/queries";
 import { simulateRank } from "@/lib/leaderboard";
 import { CATEGORY_EMOJI, CATEGORY_LABEL, CATEGORY_SLUG } from "@/lib/categories";
-import { formatNumber, formatUSD, pluralize } from "@/lib/utils";
+import { formatNumber, formatUSD, pluralize, profileName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +26,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { WishlistButton } from "@/components/wishlist-button";
 import { AddProductButton } from "@/components/product/add-product-button";
 import { StatCard } from "@/components/stat-card";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -51,14 +54,15 @@ export default async function ProductPage({ params }: PageProps) {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
-  const [owners, counts, catalogue, owned, wished, stats] = await Promise.all([
+  const [owners, counts, catalogue, inventory, wished] = await Promise.all([
     getProductOwners(product.id),
     getOwnershipCounts(),
     getCatalogue(),
-    userId ? getOwnedQuantities(userId) : Promise.resolve<Record<string, number>>({}),
+    userId ? getInventory(userId) : Promise.resolve<InventoryItem[]>([]),
     userId ? getWishlistIds(userId) : Promise.resolve(new Set<string>()),
-    userId ? getUserStats(userId) : Promise.resolve(null),
   ]);
+  const stats = userId ? summarize(inventory) : null;
+  const owned = ownedQuantities(inventory);
 
   const holders = counts[product.id] ?? 0;
   const ownedQuantity = owned[product.id] ?? 0;
@@ -125,8 +129,8 @@ export default async function ProductPage({ params }: PageProps) {
                 <span className="font-semibold text-foreground">
                   {formatUSD(stats.score + product.priceUSD)}
                 </span>{" "}
-                and #{formatNumber(projected.rank)} of {formatNumber(projected.total)} on Band for
-                Band.
+                and #{formatNumber(projected.rank)} of {formatNumber(projected.total)} on{" "}
+                {LEADERBOARD_NAME}.
               </p>
             )}
 
@@ -147,7 +151,7 @@ export default async function ProductPage({ params }: PageProps) {
                 </>
               ) : (
                 <Button asChild size="lg">
-                  <Link href={`/signup?callbackUrl=/p/${product.slug}`}>Add it to my score</Link>
+                  <Link href={`/signup?callbackUrl=/p/${product.slug}`}>Sign up to add it</Link>
                 </Button>
               )}
             </div>
@@ -182,7 +186,7 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Who owns it</CardTitle>
@@ -201,7 +205,7 @@ export default async function ProductPage({ params }: PageProps) {
                       href={`/u/${owner.username}`}
                       className="min-w-0 flex-1 truncate font-medium hover:underline"
                     >
-                      {owner.displayName ?? `@${owner.username}`}
+                      {profileName(owner)}
                     </Link>
                     <span className="tabular text-sm text-muted-foreground">
                       ×{formatNumber(owner.quantity)}

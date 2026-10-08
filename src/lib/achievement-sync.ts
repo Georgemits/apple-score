@@ -6,6 +6,7 @@ import {
   unlockedIds,
   type AchievementContext,
   type AchievementDefinition,
+  type AchievementGroup,
 } from "@/lib/achievements";
 import { getStanding } from "@/lib/leaderboard";
 import { getActiveDays, getFollowCounts, getInventory, summarize } from "@/lib/queries";
@@ -34,19 +35,48 @@ export async function buildAchievementContext(userId: string): Promise<Achieveme
   };
 }
 
+/**
+ * A context that carries only follow counts. Enough for the social group,
+ * and far cheaper than the full ranking query a follow does not change.
+ */
+export async function buildSocialContext(userId: string): Promise<AchievementContext> {
+  const follows = await getFollowCounts(userId);
+  return {
+    score: 0,
+    productCount: 0,
+    distinctProducts: 0,
+    items: [],
+    breakdown: [],
+    rank: null,
+    totalUsers: 0,
+    followers: follows.followers,
+    following: follows.following,
+    activeDays: 0,
+  };
+}
+
+export const SOCIAL_GROUPS: readonly AchievementGroup[] = ["social"];
+
 export type UnlockSummary = Pick<AchievementDefinition, "id" | "title" | "emoji" | "rarity">;
 
+export type SyncOptions = {
+  /** A context already built for this request, so it is not rebuilt. */
+  context?: AchievementContext;
+  /** Evaluate only these groups; pair with a context built for them. */
+  only?: readonly AchievementGroup[];
+};
+
 /**
- * Evaluates every achievement for the user and records any that are newly
- * earned. Returns the definitions unlocked by this call, in catalogue order,
- * so the caller can celebrate them. Unlocks are never revoked.
+ * Evaluates achievements for the user and records any that are newly earned.
+ * Returns the definitions unlocked by this call, in catalogue order, so the
+ * caller can celebrate them. Unlocks are never revoked.
  */
 export async function syncAchievements(
   userId: string,
-  context?: AchievementContext
+  options: SyncOptions = {}
 ): Promise<UnlockSummary[]> {
-  const resolved = context ?? (await buildAchievementContext(userId));
-  const earned = new Set(unlockedIds(resolved));
+  const resolved = options.context ?? (await buildAchievementContext(userId));
+  const earned = new Set(unlockedIds(resolved, options.only));
   if (earned.size === 0) return [];
 
   const existing = await prisma.userAchievement.findMany({

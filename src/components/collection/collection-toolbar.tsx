@@ -137,7 +137,7 @@ export function CollectionToolbar({
               const next = SORT_OPTIONS.find((option) => option.value === event.target.value);
               onSortChange(next?.value ?? DEFAULT_SORT);
             }}
-            className="h-11 appearance-none rounded-full border border-border bg-background/60 pl-10 pr-10 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-secondary sm:h-10"
+            className="h-11 appearance-none rounded-full border border-border bg-background/60 pl-10 pr-10 text-base font-medium text-foreground backdrop-blur transition-colors hover:bg-secondary sm:h-10 sm:text-sm"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -171,14 +171,10 @@ export function CollectionToolbar({
         </div>
 
         <div className="ml-auto flex min-h-11 items-center gap-2.5 sm:min-h-10">
-          <span id="collection-group-label" className="text-sm font-medium">
+          <label htmlFor="collection-group" className="text-sm font-medium">
             Group by category
-          </span>
-          <Switch
-            checked={grouped}
-            onCheckedChange={onGroupedChange}
-            aria-labelledby="collection-group-label"
-          />
+          </label>
+          <Switch id="collection-group" checked={grouped} onCheckedChange={onGroupedChange} />
         </div>
       </div>
 

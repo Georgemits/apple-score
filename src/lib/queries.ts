@@ -14,6 +14,7 @@ import {
   type Tier,
 } from "@/lib/score";
 import { ACHIEVEMENTS } from "@/lib/achievements";
+import { downsample } from "@/lib/utils";
 
 /* -------------------------------------------------------------------------
  * Inventory & stats
@@ -21,13 +22,21 @@ import { ACHIEVEMENTS } from "@/lib/achievements";
 
 export type InventoryItem = Prisma.UserProductGetPayload<{ include: { product: true } }>;
 
-/** Everything a user owns, newest change first. */
-export async function getInventory(userId: string): Promise<InventoryItem[]> {
+/**
+ * Everything a user owns, newest change first. Wrapped in `cache` so a page,
+ * its metadata and the achievement context share one query per request.
+ */
+export const getInventory = cache(async (userId: string): Promise<InventoryItem[]> => {
   return prisma.userProduct.findMany({
     where: { userId, quantity: { gt: 0 } },
     include: { product: true },
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
   });
+});
+
+/** `productId → quantity`, for "you own N" badges. */
+export function ownedQuantities(items: readonly InventoryItem[]): Record<string, number> {
+  return Object.fromEntries(items.map((item) => [item.productId, item.quantity]));
 }
 
 export type UserStats = {
@@ -139,14 +148,6 @@ export async function getProductOwners(productId: string, take = 6): Promise<Pro
 }
 
 /** Which catalogue entries a user already owns, and how many. */
-export async function getOwnedQuantities(userId: string): Promise<Record<string, number>> {
-  const rows = await prisma.userProduct.findMany({
-    where: { userId, quantity: { gt: 0 } },
-    select: { productId: true, quantity: true },
-  });
-  return Object.fromEntries(rows.map((row) => [row.productId, row.quantity]));
-}
-
 /** How many users own each product — for "owned by N collectors" and rarity. */
 export const getOwnershipCounts = unstable_cache(
   async (): Promise<Record<string, number>> => {
@@ -240,9 +241,15 @@ export async function getActivity(userId: string, take = 8): Promise<ActivityIte
 
 export type ScorePoint = { at: Date; score: number };
 
+/** Most recent events considered for the chart. */
+const HISTORY_EVENT_LIMIT = 2_000;
+/** Points shipped to the client; the sparkline cannot show more anyway. */
+const HISTORY_POINTS = 240;
+
 /**
  * The score over time: a point at account creation plus one per event. The
- * series is monotone in time and ends at the current score.
+ * series is monotone in time and ends at the current score. Bounded on the
+ * server so a prolific collector's history never balloons a page payload.
  */
 export async function getScoreHistory(userId: string): Promise<ScorePoint[]> {
   const [user, events] = await Promise.all([
@@ -250,15 +257,17 @@ export async function getScoreHistory(userId: string): Promise<ScorePoint[]> {
     prisma.activityEvent.findMany({
       where: { userId },
       select: { createdAt: true, scoreAfter: true },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
+      take: HISTORY_EVENT_LIMIT,
     }),
   ]);
   if (!user) return [];
 
-  return [
+  const points: ScorePoint[] = [
     { at: user.createdAt, score: 0 },
-    ...events.map((event) => ({ at: event.createdAt, score: event.scoreAfter })),
+    ...events.reverse().map((event) => ({ at: event.createdAt, score: event.scoreAfter })),
   ];
+  return downsample(points, HISTORY_POINTS);
 }
 
 /** Distinct calendar days (UTC) on which the user changed their collection. */
@@ -489,24 +498,6 @@ export async function getPublicUsernames(
     where: { isPublic: true },
     select: { username: true, updatedAt: true },
     orderBy: { createdAt: "asc" },
-    take,
-  });
-}
-
-/** Search public users by username/display name prefix, for the follow box. */
-export async function searchUsers(query: string, take = 8): Promise<PublicUser[]> {
-  const term = query.trim().toLowerCase();
-  if (!term) return [];
-  return prisma.user.findMany({
-    where: {
-      isPublic: true,
-      OR: [
-        { username: { contains: term } },
-        { displayName: { contains: term, mode: "insensitive" } },
-      ],
-    },
-    select: PUBLIC_USER_SELECT,
-    orderBy: { username: "asc" },
     take,
   });
 }

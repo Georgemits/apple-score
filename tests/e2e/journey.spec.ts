@@ -82,7 +82,7 @@ test.describe("critical journey", () => {
     // Log out, then log back in.
     await page.goto("/home");
     await page.getByRole("button", { name: /account menu/i }).click();
-    await page.getByRole("button", { name: /log out/i }).click();
+    await page.getByRole("menuitem", { name: /log out/i }).click();
     await page.waitForURL(/\/$/);
 
     await page.goto("/login");

@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className="page-wash flex min-h-dvh flex-col font-sans">
+      <body className={cn("page-wash flex min-h-dvh flex-col font-sans", user && "pb-tabbar")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -83,13 +83,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             Skip to content
           </a>
           <Navbar user={user} />
-          <main id="main" className={cn("flex-1", user && "pb-tabbar")}>
+          <main id="main" className="flex-1">
             {children}
           </main>
-          <Footer />
+          <Footer signedIn={user !== null} />
           {user && <MobileTabBar />}
           {user && <CommandPalette />}
-          <Toaster />
+          {/* Keep toasts clear of the phone tab bar, which sits under them otherwise. */}
+          <Toaster
+            mobileOffset={user ? { bottom: "calc(5rem + env(safe-area-inset-bottom))" } : undefined}
+          />
         </ThemeProvider>
       </body>
     </html>

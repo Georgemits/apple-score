@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { CollectionItem } from "@/components/collection/types";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
 type RemoveItemDialogProps = {
   item: CollectionItem;
@@ -49,7 +50,7 @@ export function RemoveItemDialog({
             <span className="tabular font-semibold text-foreground">{formatUSD(after)}</span>.{" "}
             {after === 0
               ? "Back to zero. Impressive restraint, in reverse."
-              : "The leaderboard will notice."}
+              : `${LEADERBOARD_NAME} will notice.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

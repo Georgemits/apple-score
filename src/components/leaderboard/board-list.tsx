@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pin } from "lucide-react";
-import { cn, formatNumber, formatUSD, pluralize } from "@/lib/utils";
+import { cn, formatNumber, formatUSD, pluralize, profileName } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/empty-state";
 import { RankDelta } from "@/components/rank-delta";
 import { RankMedal } from "@/components/rank-medal";
 import { BottomBadge, TopBadge } from "@/components/score-badges";
+import { LinkPending } from "@/components/link-pending";
 import { UserAvatar } from "@/components/user-avatar";
 import { BoardSearch } from "@/components/leaderboard/board-search";
 import {
@@ -43,10 +44,6 @@ function matches(row: ListRow, needle: string): boolean {
   );
 }
 
-function displayName(row: ListRow): string {
-  return row.displayName ?? `@${row.username}`;
-}
-
 function Rank({ rank }: { rank: number }) {
   if (rank <= 3) return <RankMedal rank={rank} />;
   return (
@@ -62,7 +59,7 @@ function RowBadges({ row, isMe, className }: { row: ListRow; isMe: boolean; clas
   return (
     <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1", className)}>
       {isMe && <Badge variant="accent">You</Badge>}
-      {row.isTop && <TopBadge />}
+      {row.isTop && <TopBadge value={row.score} />}
       {row.isBottom && <BottomBadge />}
       <RankDelta movement={row.movement} isNew={row.isNew} />
     </div>
@@ -149,7 +146,7 @@ export function BoardList({
           <UserAvatar user={viewerRow} size={32} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">
-              {displayName(viewerRow)}
+              {profileName(viewerRow)}
               <span className="ml-1.5 text-xs font-medium text-accent">You</span>
             </p>
             <p className="truncate text-xs text-muted-foreground">
@@ -240,7 +237,7 @@ export function BoardList({
                                 href={href}
                                 className="min-w-0 max-w-full truncate rounded font-semibold hover:underline"
                               >
-                                {displayName(row)}
+                                {profileName(row)}
                               </Link>
                               {row.displayName && (
                                 <span className="truncate text-xs text-muted-foreground">
@@ -290,11 +287,10 @@ export function BoardList({
                         <Rank rank={row.rank} />
                         <UserAvatar user={row} size={44} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">
-                            {displayName(row)}
-                            {isMe && (
-                              <span className="ml-1.5 text-xs font-medium text-accent">You</span>
-                            )}
+                          <p className="flex items-center gap-1.5 truncate font-semibold">
+                            <span className="truncate">{profileName(row)}</span>
+                            {isMe && <span className="text-xs font-medium text-accent">You</span>}
+                            <LinkPending />
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             @{row.username}
@@ -311,7 +307,7 @@ export function BoardList({
                       </div>
                       {(row.isTop || row.isBottom || (showHighlight && row.highlight)) && (
                         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-                          {row.isTop && <TopBadge />}
+                          {row.isTop && <TopBadge value={row.score} />}
                           {row.isBottom && <BottomBadge />}
                           {showHighlight && row.highlight && (
                             <span className="min-w-0 truncate">

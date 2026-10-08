@@ -11,14 +11,22 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
-type Tab = { href: string; label: string; icon: LucideIcon; primary?: boolean };
+type Tab = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  primary?: boolean;
+  /** The full name when the tab label is an abbreviation. */
+  title?: string;
+};
 
 const TABS: Tab[] = [
   { href: "/home", label: "Home", icon: HomeIcon },
   { href: "/collection", label: "Collection", icon: Boxes },
   { href: "/catalog", label: "Add", icon: Plus, primary: true },
-  { href: "/leaderboard", label: "Board", icon: Trophy },
+  { href: "/leaderboard", label: "Board", icon: Trophy, title: LEADERBOARD_NAME },
   { href: "/profile", label: "Profile", icon: UserIcon },
 ];
 
@@ -62,6 +70,8 @@ export function MobileTabBar() {
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
+                aria-label={tab.title}
+                title={tab.title}
                 className={cn(
                   "flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors",
                   active ? "text-foreground" : "text-muted-foreground"

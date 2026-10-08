@@ -97,10 +97,15 @@ describe("inventory actions", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.quantity).toBe(3);
 
+    // Adding past the per-product cap is refused outright rather than clamped,
+    // so a double-submitted form never silently re-prices the line.
     const overflow = await addProductAction({ productId: iphone.id, quantity: 99 });
-    expect(overflow.ok).toBe(true);
-    if (!overflow.ok) return;
-    expect(overflow.data.productCount).toBe(99);
+    expect(overflow.ok).toBe(false);
+    if (!overflow.ok) expect(overflow.fieldErrors?.quantity).toBeDefined();
+    const after = await prisma.userProduct.findUnique({
+      where: { userId_productId: { userId: me.id, productId: iphone.id } },
+    });
+    expect(after?.quantity).toBe(3);
   });
 
   it("sets exact quantities and records what was paid", async () => {

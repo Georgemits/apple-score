@@ -2,7 +2,7 @@
 
 import type { Category } from "@prisma/client";
 import { CATEGORIES, CATEGORY_EMOJI, CATEGORY_LABEL } from "@/lib/categories";
-import { Chip } from "@/components/catalog/chip";
+import { Chip } from "@/components/ui/chip";
 import { cn } from "@/lib/utils";
 
 /** A horizontally scrolling chip row on phones that wraps on wider screens. */

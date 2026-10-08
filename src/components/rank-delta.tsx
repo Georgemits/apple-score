@@ -33,12 +33,15 @@ export function RankDelta({ movement, isNew = false, verbose = false, className 
   if (movement === 0) {
     return (
       <span
-        className={cn("inline-flex items-center gap-1 text-xs text-muted-foreground", className)}
+        className={cn(
+          "inline-flex min-w-0 max-w-full items-center gap-1 text-xs text-muted-foreground",
+          className
+        )}
         title="No change this week"
       >
-        <Minus className="size-3" aria-hidden="true" />
+        <Minus className="size-3 shrink-0" aria-hidden="true" />
         {verbose ? (
-          "Holding steady this week"
+          <span className="truncate">Holding steady this week</span>
         ) : (
           <span className="sr-only">No change this week</span>
         )}
@@ -52,20 +55,22 @@ export function RankDelta({ movement, isNew = false, verbose = false, className 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-xs font-semibold",
+        "inline-flex min-w-0 max-w-full items-center gap-1 text-xs font-semibold",
         up ? "text-success" : "text-destructive",
         className
       )}
       title={`${up ? "Up" : "Down"} ${count} ${count === 1 ? "position" : "positions"} this week`}
     >
       {up ? (
-        <ArrowUp className="size-3" aria-hidden="true" />
+        <ArrowUp className="size-3 shrink-0" aria-hidden="true" />
       ) : (
-        <ArrowDown className="size-3" aria-hidden="true" />
+        <ArrowDown className="size-3 shrink-0" aria-hidden="true" />
       )}
-      {verbose
-        ? `${formatNumber(count)} ${count === 1 ? "position" : "positions"} this week`
-        : formatNumber(count)}
+      <span className="truncate">
+        {verbose
+          ? `${formatNumber(count)} ${count === 1 ? "position" : "positions"} this week`
+          : formatNumber(count)}
+      </span>
     </span>
   );
 }

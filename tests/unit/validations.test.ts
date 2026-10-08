@@ -16,7 +16,6 @@ import {
   formatUSD,
   hueFromString,
   initials,
-  ordinal,
   safeCallbackUrl,
 } from "@/lib/utils";
 
@@ -160,12 +159,7 @@ describe("formatting helpers", () => {
     expect(formatSignedUSD(0)).toBe("$0");
   });
 
-  it("formats ordinals, initials, hues and relative times", () => {
-    expect(ordinal(1)).toBe("1st");
-    expect(ordinal(2)).toBe("2nd");
-    expect(ordinal(3)).toBe("3rd");
-    expect(ordinal(11)).toBe("11th");
-    expect(ordinal(22)).toBe("22nd");
+  it("formats initials, hues and tiers", () => {
     expect(initials("georgemits")).toBe("GE");
     expect(initials("george_mits")).toBe("GM");
     expect(hueFromString("tim")).toBe(hueFromString("tim"));

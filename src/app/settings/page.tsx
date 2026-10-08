@@ -101,7 +101,7 @@ export default async function SettingsPage() {
               <Separator />
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-semibold tracking-tight">Change password</h4>
+                  <h3 className="font-semibold tracking-tight">Change password</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     You&apos;ll stay signed in here after changing it.
                   </p>

@@ -97,6 +97,7 @@ export function Catalogue({ items, currentScore, initialCategory, initialQuery }
   // Render the catalogue in pages so a 230-product list never lands at once.
   const [limit, setLimit] = React.useState(PAGE_SIZE);
   React.useEffect(() => setLimit(PAGE_SIZE), [results]);
+  const countRef = React.useRef<HTMLParagraphElement | null>(null);
   const visible = React.useMemo(() => results.slice(0, limit), [results, limit]);
   const hiddenCount = results.length - visible.length;
 
@@ -264,13 +265,30 @@ export function Catalogue({ items, currentScore, initialCategory, initialQuery }
           </ul>
         )}
 
-        {hiddenCount > 0 && (
+        {results.length > PAGE_SIZE && (
           <div className="mt-6 flex flex-col items-center gap-2">
-            <Button variant="outline" onClick={() => setLimit((value) => value + PAGE_SIZE)}>
-              Show {formatNumber(Math.min(PAGE_SIZE, hiddenCount))} more
-            </Button>
-            <p className="text-xs text-muted-foreground">
+            {hiddenCount > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // The button unmounts with the last page; park focus on the
+                  // count so a keyboard user is not dropped at the top.
+                  const lastPage = hiddenCount <= PAGE_SIZE;
+                  setLimit((value) => value + PAGE_SIZE);
+                  if (lastPage) requestAnimationFrame(() => countRef.current?.focus());
+                }}
+              >
+                Show {formatNumber(Math.min(PAGE_SIZE, hiddenCount))} more
+              </Button>
+            )}
+            <p
+              ref={countRef}
+              tabIndex={-1}
+              role="status"
+              className="rounded text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               Showing {formatNumber(visible.length)} of {formatNumber(results.length)}
+              {hiddenCount === 0 && " · that's everything"}
             </p>
           </div>
         )}

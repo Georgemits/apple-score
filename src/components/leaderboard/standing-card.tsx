@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, PackagePlus, Settings2, Trophy } from "lucide-react";
 import type { BoardDefinition, Standing } from "@/lib/leaderboard";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, formatNumber, profileName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
@@ -113,7 +113,7 @@ export function StandingCard({
             </div>
 
             <ul className="mt-5 space-y-2 text-pretty text-sm text-muted-foreground">
-              <li>{percentileCopy(percentile, me.total)}</li>
+              <li>{percentileCopy(percentile, me)}</li>
               {averageLine && (
                 <li>
                   {averageLine}{" "}
@@ -158,7 +158,7 @@ export function StandingCard({
             <ol className="-mx-2 mt-2 space-y-1" aria-label="Collectors ranked around you">
               {nearby.map((row) => {
                 const isMe = row.id === viewerId;
-                const name = row.displayName ?? `@${row.username}`;
+                const name = profileName(row);
                 return (
                   <li
                     key={row.id}

@@ -8,6 +8,7 @@ import type { AchievementRarity } from "@/lib/achievements";
 import { celebrate } from "@/components/confetti";
 import { RARITY_LABEL } from "@/lib/achievements";
 import { cn, formatUSD } from "@/lib/utils";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
 const RARITY_RING: Record<AchievementRarity, string> = {
   common: "ring-border",
@@ -25,7 +26,6 @@ function AchievementToast({ unlock }: { unlock: UnlockSummary }) {
         "shine flex w-[22rem] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-popover p-3 pr-4 text-popover-foreground outline-none ring-2 transition-transform hover:scale-[1.02] focus-visible:ring-4",
         RARITY_RING[unlock.rarity]
       )}
-      role="status"
     >
       <span
         className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent/12 text-2xl"
@@ -56,7 +56,7 @@ export function celebrateUpdate(update: ScoreUpdate): void {
     toast.success(`Milestone: ${formatUSD(update.milestone)} Apple Score`, {
       description:
         update.rank && update.rank.total > 1
-          ? `You're now #${update.rank.rank} of ${update.rank.total} on Band for Band.`
+          ? `You're now #${update.rank.rank} of ${update.rank.total} on ${LEADERBOARD_NAME}.`
           : undefined,
       duration: 6000,
     });

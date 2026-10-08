@@ -6,6 +6,7 @@ import type { Category } from "@prisma/client";
 import {
   Award,
   Boxes,
+  ChartPie,
   CornerDownLeft,
   Home as HomeIcon,
   Loader2,
@@ -13,8 +14,8 @@ import {
   Search,
   Settings,
   Trophy,
-  User as UserIcon,
   type LucideIcon,
+  User as UserIcon,
 } from "lucide-react";
 import { addProductAction } from "@/actions/products";
 import { useScoreAction } from "@/hooks/use-score-action";
@@ -84,6 +85,13 @@ const NAV_COMMANDS: NavCommand[] = [
     label: "Settings",
     icon: Settings,
     keywords: "settings account password",
+  },
+  {
+    kind: "nav",
+    href: "/stats",
+    label: "Open the Census",
+    icon: ChartPie,
+    keywords: "census stats community totals",
   },
 ];
 
@@ -175,6 +183,25 @@ export function CommandPalette() {
     return [...matched, ...nav.slice(0, 3)];
   }, [products, query]);
 
+  const emptyMessage =
+    loading || products === null
+      ? "Loading the catalogue…"
+      : products.length === 0
+        ? "Could not load the catalogue. Try again in a moment."
+        : `Nothing matches “${query}”. Try a product name, family or year.`;
+
+  // Focus stays in the input (aria-activedescendant), so a status region
+  // reports what the list holds; a short delay stops it reading each keystroke.
+  const summary =
+    commands.length === 0
+      ? emptyMessage
+      : `${commands.length} ${commands.length === 1 ? "result" : "results"}`;
+  const [announcement, setAnnouncement] = React.useState("");
+  React.useEffect(() => {
+    const timer = setTimeout(() => setAnnouncement(summary), 300);
+    return () => clearTimeout(timer);
+  }, [summary]);
+
   React.useEffect(() => setIndex(0), [query]);
 
   React.useEffect(() => {
@@ -229,31 +256,29 @@ export function CommandPalette() {
             aria-controls="palette-results"
             aria-activedescendant={commands[index] ? `palette-item-${index}` : undefined}
             role="combobox"
-            aria-expanded="true"
+            aria-expanded={commands.length > 0}
             aria-autocomplete="list"
-            className="h-14 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
+            className="h-14 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground"
           />
           {(loading || isPending) && (
             <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
           )}
         </div>
 
+        {/* Listboxes may only hold options, so the empty state sits beside the list. */}
+        {commands.length === 0 && (
+          <p className="px-3 py-8 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+        )}
+        <p className="sr-only" role="status" aria-atomic="true">
+          {announcement}
+        </p>
         <ul
           id="palette-results"
           ref={listRef}
           role="listbox"
           aria-label="Results"
-          className="max-h-[22rem] overflow-y-auto p-2"
+          className={cn("max-h-[22rem] overflow-y-auto", commands.length > 0 && "p-2")}
         >
-          {commands.length === 0 && (
-            <li className="px-3 py-8 text-center text-sm text-muted-foreground">
-              {loading || products === null
-                ? "Loading the catalogue…"
-                : products.length === 0
-                  ? "Could not load the catalogue. Try again in a moment."
-                  : `Nothing matches “${query}”. Try a product name, family or year.`}
-            </li>
-          )}
           {commands.map((command, commandIndex) => {
             const active = commandIndex === index;
             const common =

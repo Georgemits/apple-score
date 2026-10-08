@@ -21,7 +21,7 @@ import { nextMilestone } from "@/lib/score";
 import { evaluateAchievements, getAchievementDefinition, RARITY_ORDER } from "@/lib/achievements";
 import { buildAchievementContext } from "@/lib/achievement-sync";
 import { LEADERBOARD_NAME } from "@/lib/branding";
-import { pluralize } from "@/lib/utils";
+import { pluralize, profileName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScoreHero } from "@/components/score-hero";
 import { Sparkline } from "@/components/charts/sparkline";
@@ -90,7 +90,7 @@ export default async function HomePage() {
   if (!user) redirect("/login?callbackUrl=/home");
 
   const stats = summarize(items);
-  const name = user.displayName ?? `@${user.username}`;
+  const name = profileName(user);
 
   /* ---------------------------------------------------------------- Quick add */
   const ownedIds = new Set(items.map((item) => item.productId));
@@ -244,12 +244,14 @@ export default async function HomePage() {
                 {LEADERBOARD_NAME}
               </Link>
             </Button>
-            <Button asChild size="lg" variant="ghost">
-              <Link href={`/u/${user.username}/card`}>
-                <Share2 aria-hidden="true" />
-                Share
-              </Link>
-            </Button>
+            {user.isPublic && (
+              <Button asChild size="lg" variant="ghost">
+                <Link href={`/u/${user.username}/card`}>
+                  <Share2 aria-hidden="true" />
+                  Share
+                </Link>
+              </Button>
+            )}
           </>
         }
         aside={

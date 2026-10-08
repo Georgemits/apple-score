@@ -27,7 +27,8 @@ export type Simulation = {
   /** Dollars the hypothetical purchase would add. */
   added: number;
   projectedScore: number;
-  projectedRank: { rank: number; total: number };
+  /** Null for private profiles, which never rank. */
+  projectedRank: { rank: number; total: number } | null;
   /** Positions gained (positive) on the overall board. */
   positionsGained: number | null;
 };
@@ -74,7 +75,7 @@ export async function simulatePurchaseAction(input: unknown): Promise<ActionResu
       added,
       projectedScore,
       projectedRank,
-      positionsGained: standing ? standing.me.rank - projectedRank.rank : null,
+      positionsGained: standing && projectedRank ? standing.me.rank - projectedRank.rank : null,
     },
   };
 }

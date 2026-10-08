@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -33,17 +34,15 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {OPTIONS.map((option) => (
-          <DropdownMenuItem
-            key={option.value}
-            onSelect={() => setTheme(option.value)}
-            aria-current={mounted && theme === option.value ? "true" : undefined}
-            className={mounted && theme === option.value ? "bg-secondary" : undefined}
-          >
-            <option.icon aria-hidden="true" />
-            {option.label}
-          </DropdownMenuItem>
-        ))}
+        {/* Radio items expose the active theme as "checked", not just a tint. */}
+        <DropdownMenuRadioGroup value={mounted ? theme : undefined} onValueChange={setTheme}>
+          {OPTIONS.map((option) => (
+            <DropdownMenuRadioItem key={option.value} value={option.value}>
+              <option.icon aria-hidden="true" />
+              {option.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

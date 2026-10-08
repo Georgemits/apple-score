@@ -9,7 +9,6 @@ import {
   getRecentDelta,
   getScoreHistory,
   getUserStats,
-  searchUsers,
   summarize,
 } from "@/lib/queries";
 import { createTestUser, deleteTestUsers, own, product } from "./helpers";
@@ -89,7 +88,7 @@ describe("queries", () => {
     expect(counts[vision.id] ?? 0).toBeGreaterThanOrEqual(0);
   });
 
-  it("lists follows and searches public users", async () => {
+  it("lists follows, hiding private accounts", async () => {
     await prisma.follow.create({ data: { followerId: open.id, followingId: hidden.id } });
     const third = await createTestUser();
     await prisma.follow.create({ data: { followerId: open.id, followingId: third.id } });
@@ -99,11 +98,6 @@ describe("queries", () => {
     expect(following.map((u) => u.id)).toEqual([third.id]); // hidden is private
     const followers = await getFollowers(open.id);
     expect(followers.map((u) => u.id)).toEqual([third.id]);
-
-    const found = await searchUsers(open.username.slice(0, 8));
-    expect(found.map((u) => u.id)).toContain(open.id);
-    expect(found.map((u) => u.id)).not.toContain(hidden.id);
-    expect(await searchUsers("   ")).toEqual([]);
   });
 
   it("reports community totals", async () => {

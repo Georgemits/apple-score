@@ -4,10 +4,12 @@ import { auth } from "@/auth";
 import { getInventory, summarize, type InventoryItem } from "@/lib/queries";
 import { CATEGORY_LABEL } from "@/lib/categories";
 import { CollectionEmpty } from "@/components/collection/collection-empty";
+import { ScoringExplainer } from "@/components/collection/scoring-explainer";
 import { CollectionHeader } from "@/components/collection/collection-header";
 import { CollectionStats } from "@/components/collection/collection-stats";
 import { CollectionView } from "@/components/collection/collection-view";
 import type { CollectionItem } from "@/components/collection/types";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "My collection",
@@ -44,7 +46,10 @@ export default async function CollectionPage() {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/collection");
 
-  const inventory = await getInventory(session.user.id);
+  const [inventory, account] = await Promise.all([
+    getInventory(session.user.id),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { onboardedAt: true } }),
+  ]);
   const stats = summarize(inventory);
   const items = inventory.map(serialize);
 
@@ -58,7 +63,7 @@ export default async function CollectionPage() {
       />
 
       {items.length === 0 ? (
-        <CollectionEmpty />
+        <CollectionEmpty showSetup={account?.onboardedAt === null} />
       ) : (
         <>
           <CollectionView items={items} score={stats.score} />
@@ -80,6 +85,8 @@ export default async function CollectionPage() {
           />
         </>
       )}
+
+      <ScoringExplainer />
     </div>
   );
 }

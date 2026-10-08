@@ -144,7 +144,7 @@ export function RevealStep({ items, headingRef }: RevealStepProps) {
             Your Apple Score is currently $0. That’s… impressive restraint.
           </h1>
           <p className="mx-auto mt-3 max-w-md text-pretty text-muted-foreground">
-            Everything in the catalog counts the moment you add it. Start with the device you’re
+            Everything in the catalogue counts the moment you add it. Start with the device you’re
             reading this on.
           </p>
           <div className="mt-5 flex justify-center">
@@ -154,7 +154,7 @@ export function RevealStep({ items, headingRef }: RevealStepProps) {
             <Button asChild size="lg">
               <Link href="/catalog">
                 <PackagePlus aria-hidden="true" />
-                Browse the catalog
+                Browse the catalogue
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">

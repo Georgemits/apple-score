@@ -1,6 +1,6 @@
 import type * as React from "react";
 import type { LucideIcon } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { SettingsSectionId } from "@/components/settings/sections";
 
@@ -52,9 +52,15 @@ export function SettingsSection({
             <Icon className="size-[18px]" />
           </span>
           <div className="min-w-0 space-y-1.5">
-            <CardTitle id={titleId} className={cn(danger && "text-destructive")}>
+            <h2
+              id={titleId}
+              className={cn(
+                "text-lg font-semibold leading-none tracking-tight",
+                danger && "text-destructive"
+              )}
+            >
               {title}
-            </CardTitle>
+            </h2>
             <CardDescription className="text-pretty">{description}</CardDescription>
           </div>
         </CardHeader>

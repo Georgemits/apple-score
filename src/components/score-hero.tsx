@@ -71,7 +71,7 @@ export function ScoreHero({
           <p className="mt-7 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Apple Score
           </p>
-          <p className="score-figure mt-2 text-6xl font-bold sm:text-7xl lg:text-8xl">
+          <p className="score-figure mt-2 text-[clamp(2.75rem,14vw,3.75rem)] font-bold sm:text-7xl lg:text-8xl">
             <AnimatedMoney value={score} fromZero />
           </p>
 
@@ -106,9 +106,9 @@ export function ScoreHero({
                   <span className="font-semibold text-foreground">{rank.percentile}%</span> of
                   collectors.
                 </>
-              ) : rank.percentile === 0 ? (
+              ) : rank.rank === rank.total ? (
                 <>
-                  Everyone on the board has spent more than you.{" "}
+                  Nobody on the board has spent less than you.{" "}
                   <span className="font-semibold text-foreground">Impressive restraint.</span>
                 </>
               ) : (

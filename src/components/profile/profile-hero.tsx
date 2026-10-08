@@ -13,7 +13,7 @@ import { LEADERBOARD_NAME } from "@/lib/branding";
 import type { Standing } from "@/lib/leaderboard";
 import type { FollowCounts, PublicUser, UserStats } from "@/lib/queries";
 import { nextMilestone } from "@/lib/score";
-import { formatMonthYear, formatNumber, formatUSD, pluralize } from "@/lib/utils";
+import { formatMonthYear, formatNumber, formatUSD, pluralize, profileName } from "@/lib/utils";
 import { AnimatedMoney } from "@/components/animated-number";
 import { FollowButton } from "@/components/follow-button";
 import { MilestoneProgress } from "@/components/milestone-progress";
@@ -37,10 +37,6 @@ type ProfileHeroProps = {
   following: boolean;
 };
 
-export function profileName(user: Pick<PublicUser, "displayName" | "username">): string {
-  return user.displayName ?? `@${user.username}`;
-}
-
 /** "Richer in Apple than 72% of collectors." — phrased for the owner or a visitor. */
 function StandingLine({
   standing,
@@ -62,8 +58,8 @@ function StandingLine({
       </>
     );
   }
-  if (percentile === 0) {
-    return <>Everyone else on the board has spent more. {strong("Impressive restraint.")}</>;
+  if (me.rank === me.total) {
+    return <>Nobody on the board has spent less. {strong("Impressive restraint.")}</>;
   }
   if (percentile >= 50) {
     return (
@@ -151,17 +147,25 @@ export function ProfileHero({
                   <Users className="size-4 text-muted-foreground" aria-hidden="true" />
                   <dt className="sr-only">Followers</dt>
                   <dd>
-                    <span className="tabular font-semibold">{formatNumber(follows.followers)}</span>{" "}
-                    <span className="text-muted-foreground">
-                      {follows.followers === 1 ? "follower" : "followers"}
-                    </span>
+                    <Link href={`${profilePath}/followers`} className="rounded hover:underline">
+                      <span className="tabular font-semibold">
+                        {formatNumber(follows.followers)}
+                      </span>{" "}
+                      <span className="text-muted-foreground">
+                        {follows.followers === 1 ? "follower" : "followers"}
+                      </span>
+                    </Link>
                   </dd>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <dt className="sr-only">Following</dt>
                   <dd>
-                    <span className="tabular font-semibold">{formatNumber(follows.following)}</span>{" "}
-                    <span className="text-muted-foreground">following</span>
+                    <Link href={`${profilePath}/following`} className="rounded hover:underline">
+                      <span className="tabular font-semibold">
+                        {formatNumber(follows.following)}
+                      </span>{" "}
+                      <span className="text-muted-foreground">following</span>
+                    </Link>
                   </dd>
                 </div>
               </dl>
@@ -209,12 +213,14 @@ export function ProfileHero({
                 </Link>
               </Button>
             )}
-            <ShareButton
-              path={profilePath}
-              title={`${name} · Apple Score`}
-              text={shareText}
-              variant={isOwner ? "outline" : "ghost"}
-            />
+            {user.isPublic && (
+              <ShareButton
+                path={profilePath}
+                title={`${name} · Apple Score`}
+                text={shareText}
+                variant={isOwner ? "outline" : "ghost"}
+              />
+            )}
             {user.isPublic && (
               <Button asChild variant="ghost">
                 <Link href={`${profilePath}/card`}>
@@ -252,7 +258,7 @@ export function ProfileHero({
                 {user.isPublic ? "Not on the board yet" : "Off the board"}
               </span>
             )}
-            {standing?.me.isTop && <TopBadge />}
+            {standing?.me.isTop && <TopBadge value={standing.me.score} />}
           </div>
 
           {standing ? (

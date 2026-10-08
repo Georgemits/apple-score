@@ -33,7 +33,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { UserAvatar } from "@/components/user-avatar";
 import { logoutAction } from "@/actions/auth";
 import { LEADERBOARD_NAME } from "@/lib/branding";
-import { cn } from "@/lib/utils";
+import { cn, profileName } from "@/lib/utils";
 
 export type NavUser = {
   username: string;
@@ -58,16 +58,20 @@ const GUEST_LINKS: NavLink[] = [
   { href: "/achievements", label: "Achievements", icon: Award },
 ];
 
-function LogoutForm({ className }: { className?: string }) {
+/**
+ * A real menu item (roving focus, Enter/Space) wrapping the submit button.
+ * Selecting it must not close the menu: the form has to stay mounted while
+ * the logout action runs, and the redirect takes the whole nav away anyway.
+ */
+function LogoutForm() {
   return (
-    <form action={logoutAction} className={className}>
-      <button
-        type="submit"
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none transition-colors hover:bg-secondary focus-visible:bg-secondary"
-      >
-        <LogOut className="size-4" aria-hidden="true" />
-        Log out
-      </button>
+    <form action={logoutAction}>
+      <DropdownMenuItem asChild onSelect={(event) => event.preventDefault()}>
+        <button type="submit" className="w-full">
+          <LogOut aria-hidden="true" />
+          Log out
+        </button>
+      </DropdownMenuItem>
     </form>
   );
 }
@@ -152,7 +156,7 @@ export function SiteNav({ user }: { user: NavUser }) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60">
                   <DropdownMenuLabel className="truncate">
-                    {user.displayName ?? `@${user.username}`}
+                    {profileName(user)}
                     <span className="block truncate font-normal text-muted-foreground">
                       {user.displayName ? `@${user.username}` : user.email}
                     </span>

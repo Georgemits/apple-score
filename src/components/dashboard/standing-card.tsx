@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Settings2, Trophy } from "lucide-react";
 import type { BoardRow, Standing } from "@/lib/leaderboard";
 import { LEADERBOARD_NAME } from "@/lib/branding";
-import { cn, formatNumber, formatUSD } from "@/lib/utils";
+import { cn, formatNumber, formatUSD, profileName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { RankDelta } from "@/components/rank-delta";
@@ -57,7 +57,7 @@ export function StandingCard({ standing, currentUserId, isPrivate, delay }: Stan
             bare
             emoji="🕶️"
             title="You're off the board"
-            description="Private profiles don't rank. Flip yours public to compete on Band for Band."
+            description={`Private profiles don't rank. Flip yours public to compete on ${LEADERBOARD_NAME}.`}
             action={
               <Button asChild variant="outline" size="sm">
                 <Link href="/settings">
@@ -103,7 +103,7 @@ export function StandingCard({ standing, currentUserId, isPrivate, delay }: Stan
       <ol className="-mx-2 space-y-1" aria-label="Collectors ranked around you">
         {nearby.map((row) => {
           const isMe = row.id === currentUserId;
-          const name = row.displayName ?? `@${row.username}`;
+          const name = profileName(row);
           return (
             <li
               key={row.id}
@@ -123,13 +123,13 @@ export function StandingCard({ standing, currentUserId, isPrivate, delay }: Stan
                   {name}
                   {isMe && <span className="ml-1.5 text-xs font-medium text-accent">You</span>}
                 </Link>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="flex min-w-0 text-xs text-muted-foreground">
                   {!isMe ? (
-                    gapCopy(row, me)
+                    <span className="truncate">{gapCopy(row, me)}</span>
                   ) : row.isNew || row.movement !== null ? (
                     <RankDelta movement={row.movement} isNew={row.isNew} verbose />
                   ) : (
-                    "Holding your spot"
+                    <span className="truncate">Holding your spot</span>
                   )}
                 </p>
               </div>

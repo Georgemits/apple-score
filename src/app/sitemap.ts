@@ -13,6 +13,7 @@ const STATIC_ROUTES: {
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/leaderboard", priority: 0.9, changeFrequency: "daily" },
   { path: "/achievements", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/stats", priority: 0.6, changeFrequency: "daily" },
   { path: "/signup", priority: 0.5, changeFrequency: "monthly" },
   { path: "/login", priority: 0.3, changeFrequency: "monthly" },
 ];

@@ -9,7 +9,6 @@ import {
   lineTotal,
   milestoneReached,
   nextMilestone,
-  nextTier,
   percentile,
   tierFor,
   unitPrice,
@@ -99,12 +98,6 @@ describe("tiers", () => {
     expect(tierFor(1_000).id).toBe("casual-fan");
     expect(tierFor(12_482).id).toBe("ecosystem-hostage");
     expect(tierFor(10_000_000).id).toBe("infinite-loop");
-  });
-
-  it("knows the next tier up", () => {
-    expect(nextTier(0)?.id).toBe("toe-dipper");
-    expect(nextTier(5_000)?.id).toBe("ecosystem-hostage");
-    expect(nextTier(1_000_000)).toBeNull();
   });
 });
 

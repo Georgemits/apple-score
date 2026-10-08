@@ -4,7 +4,7 @@ import { RotateCcw } from "lucide-react";
 import { GROUP_LABEL, RARITY_LABEL } from "@/lib/achievements";
 import { cn, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Chip, ChipRow } from "@/components/achievements/chip";
+import { Chip, ChipRow } from "@/components/ui/chip";
 import { RARITY_DOT } from "@/components/achievements/rarity";
 import {
   GROUP_KEYS,
@@ -68,12 +68,18 @@ export function FilterBar({ filters, counts, onChange, onReset, resultLabel }: F
           })}
         </div>
 
-        {active && (
-          <Button type="button" variant="ghost" size="sm" onClick={onReset}>
-            <RotateCcw aria-hidden="true" />
-            Reset
-          </Button>
-        )}
+        {/* Always mounted: unmounting on click would drop keyboard focus. */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={active ? onReset : undefined}
+          aria-disabled={!active || undefined}
+          className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+        >
+          <RotateCcw aria-hidden="true" />
+          Reset
+        </Button>
 
         <p
           aria-live="polite"

@@ -2,6 +2,7 @@ import type { Category } from "@prisma/client";
 import type { BoardDefinition, BoardMetric, BoardRow } from "@/lib/leaderboard";
 import { CATEGORY_LABEL, CATEGORY_SLUG } from "@/lib/categories";
 import { formatNumber, formatRelative, formatUSD, pluralize } from "@/lib/utils";
+import { LEADERBOARD_NAME } from "@/lib/branding";
 
 /**
  * Plain, serialisable shapes for the client half of the leaderboard. Dates
@@ -110,7 +111,7 @@ export function headerDescription(board: BoardDefinition, total: number): string
   if (total === 0) return `${board.description} Nobody here yet.`;
   const count = pluralize(total, "collector");
   if (board.key === "overall") {
-    return `The Apple Score leaderboard — ${count} ranked by money spent on Apple.`;
+    return `${LEADERBOARD_NAME} — ${count} ranked by money spent on Apple.`;
   }
   if (board.key === "following") {
     return `Just you and the collectors you follow — ${count} ranked by money spent on Apple.`;
@@ -141,11 +142,18 @@ export function averageCopy(value: number, average: number): string | null {
     : `You're ${formatNumber(Math.abs(percent))}% below the average collector.`;
 }
 
-/** "You're ahead of 87% of collectors on this board." */
-export function percentileCopy(percentile: number, total: number): string {
-  if (total <= 1) return "You're the only one here. Enjoy the view while it lasts.";
-  if (percentile >= 99) return "You're ahead of everyone else on this board.";
-  if (percentile <= 0) return "Everyone on this board is ahead of you. Plenty of room to climb.";
+/**
+ * "You're ahead of 87% of collectors on this board." The two extremes come
+ * from counts, not the rounded percentile: #2 of 150 rounds to 99% but is not
+ * ahead of everyone, and a tie for last still has nobody behind it.
+ */
+export function percentileCopy(
+  percentile: number,
+  me: Pick<BoardRow, "rank" | "total" | "below">
+): string {
+  if (me.total <= 1) return "You're the only one here. Enjoy the view while it lasts.";
+  if (me.rank === 1) return "You're ahead of everyone else on this board.";
+  if (me.below === 0) return "Nobody on this board is behind you yet. Plenty of room to climb.";
   return `You're ahead of ${formatNumber(percentile)}% of collectors on this board.`;
 }
 

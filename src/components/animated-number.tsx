@@ -44,8 +44,10 @@ export function AnimatedNumber({
     return () => controls.stop();
   }, [value, duration, reduceMotion]);
 
+  // Assistive tech reads the settled value; sighted users watch it count.
   return (
-    <span className={className} aria-label={format(value)}>
+    <span className={className}>
+      <span className="sr-only">{format(value)}</span>
       <span aria-hidden="true">{format(display)}</span>
     </span>
   );

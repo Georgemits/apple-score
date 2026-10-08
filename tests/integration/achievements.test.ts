@@ -51,7 +51,7 @@ describe("achievement sync", () => {
     await prisma.userProduct.deleteMany({ where: { userId: user.id } });
     const context = await buildAchievementContext(user.id);
     expect(context.score).toBe(0);
-    expect(await syncAchievements(user.id, context)).toEqual([]);
+    expect(await syncAchievements(user.id, { context })).toEqual([]);
     const stored = await getUnlockedAchievements(user.id);
     expect(stored.map((row) => row.achievementId)).toContain("cheese-grater");
   });
@@ -69,7 +69,7 @@ describe("achievement sync", () => {
     expect(context.rank).not.toBeNull();
     expect(context.totalUsers).toBeGreaterThan(0);
 
-    const fresh = await syncAchievements(user.id, context);
+    const fresh = await syncAchievements(user.id, { context });
     expect(fresh.map((unlock) => unlock.id)).toContain("lost-and-found");
   });
 

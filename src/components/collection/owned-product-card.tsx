@@ -17,6 +17,7 @@ import { EditItemDialog, type EditItemValues } from "@/components/collection/edi
 import { RemoveItemDialog } from "@/components/collection/remove-item-dialog";
 import { UnitPriceLine } from "@/components/collection/unit-price-line";
 import type { CollectionItem, ViewMode } from "@/components/collection/types";
+import { LinkPending } from "@/components/link-pending";
 
 type OwnedProductCardProps = {
   item: CollectionItem;
@@ -164,8 +165,12 @@ export function OwnedProductCard({ item, view, score, index }: OwnedProductCardP
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <Link href={href} className="truncate font-medium hover:underline">
-                  {name}
+                <Link
+                  href={href}
+                  className="flex min-w-0 items-center gap-1.5 font-medium hover:underline"
+                >
+                  <span className="truncate">{name}</span>
+                  <LinkPending />
                 </Link>
                 {item.product.legacy && <LegacyBadge className="shrink-0" />}
               </div>
@@ -240,8 +245,12 @@ export function OwnedProductCard({ item, view, score, index }: OwnedProductCardP
 
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-start justify-between gap-2">
-            <Link href={href} className="line-clamp-2 font-semibold leading-snug hover:underline">
-              {name}
+            <Link
+              href={href}
+              className="flex min-w-0 items-start gap-1.5 font-semibold leading-snug hover:underline"
+            >
+              <span className="line-clamp-2">{name}</span>
+              <LinkPending className="mt-1" />
             </Link>
             {item.product.legacy && <LegacyBadge className="shrink-0" />}
           </div>

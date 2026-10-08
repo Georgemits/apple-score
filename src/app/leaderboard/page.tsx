@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { DEFAULT_BOARD, getBoardDefinition, getBoardPage, getStanding } from "@/lib/leaderboard";
 import { getUserById } from "@/lib/queries";
 import { LEADERBOARD_NAME } from "@/lib/branding";
+import { firstParam } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
@@ -25,17 +26,13 @@ import {
 
 export const metadata: Metadata = {
   title: LEADERBOARD_NAME,
-  description: "The global Apple Score leaderboard",
+  description: `${LEADERBOARD_NAME}: every public collector ranked by money spent on Apple.`,
 };
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type PageProps = { searchParams: Promise<SearchParams> };
-
-function first(value: string | string[] | undefined): string {
-  return (Array.isArray(value) ? value[0] : value) ?? "";
-}
 
 /** `?page=` as a positive integer; anything odd lands on page 1. */
 function parsePage(value: string): number {
@@ -47,12 +44,12 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
   const [params, session] = await Promise.all([searchParams, auth()]);
   const viewerId = session?.user?.id ?? null;
 
-  const board = getBoardDefinition(first(params.board) || undefined);
+  const board = getBoardDefinition(firstParam(params.board) || undefined);
   // Guests have nobody to follow; send them to the overall board instead of
   // an empty one.
   if (board.requiresViewer && !viewerId) redirect(boardHref(DEFAULT_BOARD.key));
 
-  const page = parsePage(first(params.page));
+  const page = parsePage(firstParam(params.page));
 
   const [data, standing, viewer] = await Promise.all([
     getBoardPage(board.key, { page, viewerId }),
@@ -130,7 +127,12 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
         <>
           {data.page === 1 && (
             <section aria-label="Podium" className="animate-enter-up">
-              <Podium rows={data.rows} formatValue={formatValue} currentUserId={viewerId} />
+              <Podium
+                rows={data.rows}
+                formatValue={formatValue}
+                metric={board.metric}
+                currentUserId={viewerId}
+              />
             </section>
           )}
 

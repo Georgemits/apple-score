@@ -90,6 +90,18 @@ function EditItemForm({ item, onSave, onCancel, isPending }: EditItemFormProps) 
   const currentTotal = lineTotal(item);
   const nextTotal = invalid ? null : (paid ?? item.product.priceUSD) * parsedQuantity;
   const delta = nextTotal === null ? 0 : nextTotal - currentTotal;
+
+  // Announce the new subtotal a beat after the last keystroke, not on each.
+  const [announcement, setAnnouncement] = React.useState("");
+  React.useEffect(() => {
+    if (nextTotal === null) return;
+    const message =
+      delta === 0
+        ? `No change from ${formatUSD(currentTotal)}.`
+        : `New subtotal ${formatUSD(nextTotal)}, ${formatSignedUSD(delta)}.`;
+    const timer = setTimeout(() => setAnnouncement(message), 600);
+    return () => clearTimeout(timer);
+  }, [nextTotal, delta, currentTotal]);
   const unchanged = !invalid && parsedQuantity === item.quantity && paid === item.pricePaidUSD;
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -171,7 +183,10 @@ function EditItemForm({ item, onSave, onCancel, isPending }: EditItemFormProps) 
           </p>
         </div>
 
-        <div className="rounded-xl bg-secondary/60 px-4 py-3 text-sm" aria-live="polite">
+        <p className="sr-only" role="status" aria-atomic="true">
+          {announcement}
+        </p>
+        <div className="rounded-xl bg-secondary/60 px-4 py-3 text-sm">
           <p>
             New subtotal:{" "}
             <span className="tabular font-semibold">

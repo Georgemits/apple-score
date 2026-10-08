@@ -1,15 +1,18 @@
 import Link from "next/link";
-import type { BoardRow } from "@/lib/leaderboard";
+import type { BoardMetric, BoardRow } from "@/lib/leaderboard";
 import { Card } from "@/components/ui/card";
 import { UserAvatar } from "@/components/user-avatar";
 import { RankDelta } from "@/components/rank-delta";
 import { TopBadge } from "@/components/score-badges";
-import { cn, formatNumber, formatUSD } from "@/lib/utils";
+import { LinkPending } from "@/components/link-pending";
+import { cn, formatCompactUSD, formatNumber, formatUSD, profileName } from "@/lib/utils";
 
 type PodiumProps = {
   rows: BoardRow[];
   /** Format the ranked value — dollars by default, units for the products board. */
   formatValue?: (value: number) => string;
+  /** Which metric `value` holds; picks the compact phone figure and the second line. */
+  metric?: BoardMetric;
   currentUserId?: string | null;
 };
 
@@ -27,7 +30,12 @@ const PLACE = {
 } as const;
 
 /** The top three, with first place in the middle and raised on wide screens. */
-export function Podium({ rows, formatValue = formatUSD, currentUserId }: PodiumProps) {
+export function Podium({
+  rows,
+  formatValue = formatUSD,
+  metric = "score",
+  currentUserId,
+}: PodiumProps) {
   const top = rows.filter((row) => row.rank <= 3).slice(0, 3);
   if (top.length === 0) return null;
 
@@ -58,18 +66,25 @@ export function Podium({ rows, formatValue = formatUSD, currentUserId }: PodiumP
                   size={row.rank === 1 ? 72 : 56}
                   className={cn("ring-4", place.ring)}
                 />
-                <span className="w-full truncate text-sm font-semibold group-hover:underline sm:text-base">
-                  {row.displayName ?? `@${row.username}`}
+                <span className="flex w-full items-center justify-center gap-1.5 text-sm font-semibold group-hover:underline sm:text-base">
+                  <span className="truncate">{profileName(row)}</span>
+                  <LinkPending />
                 </span>
               </Link>
-              <p className="score-figure w-full truncate text-lg font-bold sm:text-2xl">
-                {formatValue(row.value)}
+              {/* Phones get a compact figure so first place is never cut to "$1,234,…". */}
+              <p className="score-figure w-full break-words text-lg font-bold sm:text-2xl">
+                <span className="sm:hidden">
+                  {metric === "units" ? formatNumber(row.value) : formatCompactUSD(row.value)}
+                </span>
+                <span className="hidden sm:inline">{formatValue(row.value)}</span>
               </p>
               <p className="text-[11px] text-muted-foreground sm:text-xs">
-                {formatNumber(row.units)} {row.units === 1 ? "product" : "products"}
+                {metric === "units"
+                  ? formatUSD(row.score)
+                  : `${formatNumber(row.units)} ${row.units === 1 ? "product" : "products"}`}
               </p>
               <RankDelta movement={row.movement} isNew={row.isNew} />
-              {row.isTop && <TopBadge className="hidden sm:inline-flex" />}
+              {row.isTop && <TopBadge value={row.score} className="hidden sm:inline-flex" />}
             </Card>
           </li>
         );

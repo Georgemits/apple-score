@@ -3,11 +3,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import {
   getCatalogue,
-  getOwnedQuantities,
+  getInventory,
   getOwnershipCounts,
-  getUserStats,
   getWishlistIds,
+  ownedQuantities,
+  summarize,
 } from "@/lib/queries";
+import { firstParam } from "@/lib/utils";
 import { categoryFromSlug } from "@/lib/categories";
 import { CatalogHeader } from "@/components/catalog/catalog-header";
 import { Catalogue } from "@/components/catalog/catalogue";
@@ -27,23 +29,20 @@ type PageProps = { searchParams: Promise<SearchParams> };
 /** Longest search we bother seeding from the URL. */
 const MAX_QUERY_LENGTH = 80;
 
-function first(value: string | string[] | undefined): string {
-  return (Array.isArray(value) ? value[0] : value) ?? "";
-}
-
 export default async function CatalogPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session?.user) redirect("/login?callbackUrl=/catalog");
   const userId = session.user.id;
 
-  const [params, catalogue, owned, wishlist, holders, stats] = await Promise.all([
+  const [params, catalogue, inventory, wishlist, holders] = await Promise.all([
     searchParams,
     getCatalogue(),
-    getOwnedQuantities(userId),
+    getInventory(userId),
     getWishlistIds(userId),
     getOwnershipCounts(),
-    getUserStats(userId),
   ]);
+  const stats = summarize(inventory);
+  const owned = ownedQuantities(inventory);
 
   // Sets and Dates do not cross the client boundary; fold everything the
   // tiles need into one plain row per product.
@@ -62,8 +61,8 @@ export default async function CatalogPage({ searchParams }: PageProps) {
     wished: wishlist.has(product.id),
   }));
 
-  const initialCategory = categoryFromSlug(first(params.category).toLowerCase());
-  const initialQuery = first(params.q).slice(0, MAX_QUERY_LENGTH);
+  const initialCategory = categoryFromSlug(firstParam(params.category).toLowerCase());
+  const initialQuery = firstParam(params.q).slice(0, MAX_QUERY_LENGTH);
 
   return (
     <div className="container space-y-8 px-4 py-8 sm:px-6 sm:py-12">

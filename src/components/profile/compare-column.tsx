@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import type { Standing } from "@/lib/leaderboard";
 import type { PublicUser, UserStats } from "@/lib/queries";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, formatNumber, profileName } from "@/lib/utils";
 import { AnimatedMoney } from "@/components/animated-number";
 import { TierBadge } from "@/components/tier-badge";
 import { UserAvatar } from "@/components/user-avatar";
@@ -48,7 +48,7 @@ function StatRow({ label, value, leads }: { label: string; value: string; leads:
 /** One collector's side of the head-to-head. */
 export function CompareColumn({ side, leads, isViewer }: CompareColumnProps) {
   const { user, stats, standing, achievements } = side;
-  const name = user.displayName ?? `@${user.username}`;
+  const name = profileName(user);
 
   return (
     <div className="flex min-w-0 flex-col items-center text-center">

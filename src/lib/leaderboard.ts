@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { Prisma, type Category } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { percentile as percentileOf } from "@/lib/score";
@@ -166,6 +167,9 @@ type RawRow = Omit<BoardRow, "isTop" | "isBottom" | "movement"> & {
   min: number;
   max: number;
   average: number;
+  previous: number;
+  /** Dense position in display order (ties broken by join date). */
+  position: number;
 };
 
 const PAGE_SIZE = 50;
@@ -193,32 +197,38 @@ function boardQuery(board: BoardDefinition, viewerId: string | null): Prisma.Sql
         ))`
       : Prisma.empty;
 
-  const metric =
-    board.metric === "score"
-      ? Prisma.sql`t."score"`
-      : board.metric === "units"
-        ? Prisma.sql`t."units"`
-        : Prisma.sql`t."biggest"`;
+  // Per-user aggregates over the (filtered) inventory and the week's events.
+  const score = Prisma.sql`COALESCE(SUM(i."unit" * i."quantity"), 0)`;
+  const units = Prisma.sql`COALESCE(SUM(i."quantity"), 0)`;
+  const biggest = Prisma.sql`COALESCE(MAX(i."unit"), 0)`;
+  const scoreDelta = Prisma.sql`COALESCE(MAX(d."scoreDelta"), 0)`;
+  const unitsDelta = Prisma.sql`COALESCE(MAX(d."unitsDelta"), 0)`;
 
-  const having =
-    board.metric === "units"
-      ? Prisma.sql`HAVING COALESCE(SUM(i."quantity"), 0) > 0`
-      : Prisma.sql`HAVING COALESCE(SUM(i."unit" * i."quantity"), 0) > 0`;
+  const metric = board.metric === "score" ? score : board.metric === "units" ? units : biggest;
 
-  const previousMetric =
+  // The metric as it stood seven days ago. The biggest-purchase board has no
+  // usable history (a removed unit cannot be reconstructed from deltas).
+  const previous =
     board.metric === "score"
-      ? Prisma.sql`(t."score" - COALESCE(d."scoreDelta", 0))`
+      ? Prisma.sql`(${score} - ${scoreDelta})`
       : board.metric === "units"
-        ? Prisma.sql`(t."units" - COALESCE(d."unitsDelta", 0))`
+        ? Prisma.sql`(${units} - ${unitsDelta})`
         : null;
 
-  const previousRank = previousMetric
-    ? Prisma.sql`CASE WHEN ${previousMetric} > 0
-        THEN RANK() OVER (ORDER BY ${previousMetric} DESC)::int
+  // Keep users who are on the board now OR were a week ago, so last week's
+  // ranking includes people who have since dropped off (otherwise everyone
+  // below them would appear not to have moved).
+  const having = previous
+    ? Prisma.sql`HAVING ${metric} > 0 OR ${previous} > 0`
+    : Prisma.sql`HAVING ${metric} > 0`;
+
+  const previousRank = previous
+    ? Prisma.sql`CASE WHEN t."previous" > 0
+        THEN RANK() OVER (ORDER BY t."previous" DESC)::int
         ELSE NULL END`
     : Prisma.sql`NULL::int`;
 
-  const isNew = previousMetric ? Prisma.sql`(${previousMetric} <= 0)` : Prisma.sql`false`;
+  const isNew = previous ? Prisma.sql`(t."previous" <= 0)` : Prisma.sql`false`;
 
   return Prisma.sql`
     WITH inv AS (
@@ -249,37 +259,47 @@ function boardQuery(board: BoardDefinition, viewerId: string | null): Prisma.Sql
         u."avatarEmoji",
         u."avatarHue",
         u."createdAt",
-        COALESCE(SUM(i."unit" * i."quantity"), 0)::int AS "score",
-        COALESCE(SUM(i."quantity"), 0)::int            AS "units",
+        ${score}::int                                   AS "score",
+        ${units}::int                                   AS "units",
         COUNT(i."userId")::int                          AS "distinct",
-        COALESCE(MAX(i."unit"), 0)::int                 AS "biggest",
-        (array_agg(i."name" ORDER BY i."unit" DESC))[1] AS "highlight"
+        ${biggest}::int                                 AS "biggest",
+        (array_agg(i."name" ORDER BY i."unit" DESC))[1] AS "highlight",
+        ${metric}::int                                  AS "value",
+        ${previous ?? Prisma.sql`0`}::int               AS "previous"
       FROM "User" u
-      JOIN inv i ON i."userId" = u."id"
+      LEFT JOIN inv i ON i."userId" = u."id"
+      LEFT JOIN deltas d ON d."userId" = u."id"
       WHERE u."isPublic" = true ${audience}
       GROUP BY u."id"
       ${having}
     ),
+    history AS (
+      SELECT t."id", ${previousRank} AS "previousRank", ${isNew} AS "isNew"
+      FROM totals t
+    ),
+    current AS (
+      SELECT t.* FROM totals t WHERE t."value" > 0
+    ),
     ranked AS (
       SELECT
-        t.*,
-        ${metric}                                                AS "value",
-        RANK() OVER (ORDER BY ${metric} DESC)::int               AS "rank",
-        ${previousRank}                                          AS "previousRank",
-        ${isNew}                                                 AS "isNew",
-        (RANK() OVER (ORDER BY ${metric} ASC) - 1)::int          AS "below",
-        COUNT(*) OVER ()::int                                    AS "total",
-        MIN(${metric}) OVER ()::int                              AS "min",
-        MAX(${metric}) OVER ()::int                              AS "max",
-        COALESCE(AVG(${metric}) OVER (), 0)::int                 AS "average"
-      FROM totals t
-      LEFT JOIN deltas d ON d."userId" = t."id"
+        c.*,
+        h."previousRank",
+        h."isNew",
+        RANK() OVER (ORDER BY c."value" DESC)::int                            AS "rank",
+        ROW_NUMBER() OVER (ORDER BY c."value" DESC, c."createdAt" ASC)::int   AS "position",
+        (RANK() OVER (ORDER BY c."value" ASC) - 1)::int                       AS "below",
+        COUNT(*) OVER ()::int                                                 AS "total",
+        MIN(c."value") OVER ()::int                                           AS "min",
+        MAX(c."value") OVER ()::int                                           AS "max",
+        COALESCE(AVG(c."value") OVER (), 0)::int                              AS "average"
+      FROM current c
+      JOIN history h ON h."id" = c."id"
     )
   `;
 }
 
 function finish(row: RawRow): BoardRow {
-  const { min, max, average: _average, ...rest } = row;
+  const { min, max, average: _average, previous: _previous, position: _position, ...rest } = row;
   const contested = row.total >= 2 && min < max;
   return {
     ...rest,
@@ -359,18 +379,23 @@ export type Standing = {
 /**
  * One user's position on a board, with the neighbours either side. Null when
  * the user is not on that board yet (nothing owned, or a private profile).
+ * Wrapped in `cache`: the ranking CTE is the most expensive query in the app,
+ * and a dashboard render or inventory action asks for it more than once.
  */
-export async function getStanding(userId: string, key = "overall"): Promise<Standing | null> {
+export const getStanding = cache(async function getStanding(
+  userId: string,
+  key = "overall"
+): Promise<Standing | null> {
   const board = getBoardDefinition(key);
 
   const rows = await prisma.$queryRaw<RawRow[]>`
     ${boardQuery(board, userId)}
     SELECT r.* FROM ranked r
-    WHERE r."rank" BETWEEN
-      (SELECT me."rank" FROM ranked me WHERE me."id" = ${userId}) - 2
+    WHERE r."position" BETWEEN
+      (SELECT me."position" FROM ranked me WHERE me."id" = ${userId}) - 2
       AND
-      (SELECT me."rank" FROM ranked me WHERE me."id" = ${userId}) + 2
-    ORDER BY r."rank" ASC, r."createdAt" ASC
+      (SELECT me."position" FROM ranked me WHERE me."id" = ${userId}) + 2
+    ORDER BY r."position" ASC
   `;
 
   const raw = rows.find((row) => row.id === userId);
@@ -395,7 +420,7 @@ export async function getStanding(userId: string, key = "overall"): Promise<Stan
     above: aboveRow ? { row: aboveRow, gap: aboveRow.value - me.value } : null,
     belowMe: belowRow ? { row: belowRow, gap: me.value - belowRow.value } : null,
   };
-}
+});
 
 export type Podium = BoardRow[];
 
@@ -413,7 +438,11 @@ export async function getPodium(key = "overall"): Promise<Podium> {
 export async function simulateRank(
   userId: string,
   hypotheticalScore: number
-): Promise<{ rank: number; total: number }> {
+): Promise<{ rank: number; total: number } | null> {
+  // Private profiles never rank, so there is no spot to project them into.
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isPublic: true } });
+  if (!user?.isPublic) return null;
+
   const rows = await prisma.$queryRaw<{ ahead: number; total: number; onBoard: boolean }[]>`
     ${boardQuery(DEFAULT_BOARD, userId)}
     SELECT

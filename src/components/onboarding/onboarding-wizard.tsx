@@ -37,7 +37,7 @@ const COPY = [
   {
     title: "Which iPhone do you carry?",
     description:
-      "Pick the one in your pocket right now. Older ones can join from the catalog later.",
+      "Pick the one in your pocket right now. Older ones can join from the catalogue later.",
   },
   {
     title: "Any Macs?",
@@ -283,8 +283,8 @@ export function OnboardingWizard({ products, username }: OnboardingWizardProps) 
 
           {limitReached && (
             <p role="status" className="text-sm text-muted-foreground">
-              That’s {MAX_ONBOARDING_ITEMS} — the most the welcome flow takes in one go. The catalog
-              has the rest.
+              That’s {MAX_ONBOARDING_ITEMS} — the most the welcome flow takes in one go. The
+              catalogue has the rest.
             </p>
           )}
 
@@ -328,7 +328,7 @@ function NoResults({ noun, query }: { noun: string; query: string }) {
         bare
         emoji="🫥"
         title="Nothing to pick here yet"
-        description="The catalog is missing this category for now. Carry on to the next step."
+        description="The catalogue is missing this category for now. Carry on to the next step."
       />
     );
   }
@@ -337,7 +337,7 @@ function NoResults({ noun, query }: { noun: string; query: string }) {
       bare
       emoji="🔍"
       title={`No ${noun} called “${term}”`}
-      description="Try a model name like “16 Pro” or “Air”. Anything else is waiting in the catalog after this."
+      description="Try a model name like “16 Pro” or “Air”. Anything else is waiting in the catalogue after this."
     />
   );
 }

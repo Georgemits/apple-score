@@ -1,16 +1,21 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { syncAchievements, type UnlockSummary } from "@/lib/achievement-sync";
+import { requireUser } from "@/lib/session";
+import {
+  SOCIAL_GROUPS,
+  buildSocialContext,
+  syncAchievements,
+  type UnlockSummary,
+} from "@/lib/achievement-sync";
 import { productIdSchema, usernameParamSchema } from "@/lib/validations";
 import { failure, type ActionResult } from "@/actions/types";
 
-async function requireUser() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-  return { userId: session.user.id, username: session.user.username };
+/** Only the social rules can change on a follow, so only they are evaluated. */
+async function syncSocial(userId: string): Promise<UnlockSummary[]> {
+  const context = await buildSocialContext(userId);
+  return syncAchievements(userId, { context, only: SOCIAL_GROUPS });
 }
 
 export type FollowResult = { following: boolean; followers: number; unlocked: UnlockSummary[] };
@@ -44,11 +49,17 @@ export async function toggleFollowAction(input: unknown): Promise<ActionResult<F
 
   const [followers, unlocked] = await Promise.all([
     prisma.follow.count({ where: { followingId: target.id } }),
-    existing ? Promise.resolve([]) : syncAchievements(me.userId),
+    existing ? Promise.resolve([]) : syncSocial(me.userId),
+    // The followed user may have just earned "Influencer"; their unlock must
+    // not fail this request, but it is awaited (serverless would freeze a
+    // detached promise) and logged.
+    existing
+      ? Promise.resolve([])
+      : syncSocial(target.id).catch((error: unknown) => {
+          console.error("toggleFollowAction: target sync failed", error);
+          return [];
+        }),
   ]);
-
-  // The followed user may have just earned "Influencer".
-  if (!existing) void syncAchievements(target.id).catch(() => undefined);
 
   revalidatePath(`/u/${parsed.data.username}`);
   revalidatePath("/leaderboard");
