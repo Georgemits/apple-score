@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { toast } from "sonner";
 import type { ScoreUpdate } from "@/actions/products";
 import type { UnlockSummary } from "@/lib/achievement-sync";
@@ -18,9 +19,10 @@ const RARITY_RING: Record<AchievementRarity, string> = {
 
 function AchievementToast({ unlock }: { unlock: UnlockSummary }) {
   return (
-    <div
+    <Link
+      href={`/achievements?fresh=${encodeURIComponent(unlock.id)}`}
       className={cn(
-        "shine flex w-[22rem] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-popover p-3 pr-4 text-popover-foreground ring-2",
+        "shine flex w-[22rem] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-popover p-3 pr-4 text-popover-foreground ring-2 outline-none transition-transform hover:scale-[1.02] focus-visible:ring-4",
         RARITY_RING[unlock.rarity]
       )}
       role="status"
@@ -37,7 +39,7 @@ function AchievementToast({ unlock }: { unlock: UnlockSummary }) {
         </p>
         <p className="truncate font-semibold">{unlock.title}</p>
       </div>
-    </div>
+    </Link>
   );
 }
 
