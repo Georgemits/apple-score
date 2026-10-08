@@ -22,6 +22,30 @@ every read, so it cannot drift from the collection and cannot be tampered with
 by a client. The only persisted "score" values are the `scoreAfter` snapshots
 in the activity log, which exist for charting history, not for ranking.
 
+## Decisions worth knowing
+
+- **The legacy bonus is gone.** An earlier version added 10% for discontinued
+  hardware, which meant the score was no longer dollars. The product rule is
+  "money spent on Apple = Apple Score", and every surface now prints the score
+  as `$12,482`. Legacy hardware still has its badge, its own board (Vintage)
+  and its own achievements — it just scores at face value. Reinstating a
+  multiplier would be a one-line change in `lineTotal()` plus the matching
+  SQL expression in `src/lib/leaderboard.ts`.
+- **The leaderboard is called Band for Band.** The route stays `/leaderboard`
+  and the display name lives in `src/lib/branding.ts`.
+- **Only collectors with something owned are "on the board".** A $0 account
+  is not ranked, so a new user's first product is the moment they "get on
+  the board", and the bottom of the board is a real collector who earns the
+  playful "Broke Alert" badge, not an empty account.
+- **Unlocked achievements are permanent.** Selling the Mac Pro does not take
+  Cheese Grater away. Progress bars for locked achievements are live.
+- **Usernames are immutable.** They are the public URL and the share-card
+  identity; display names are editable instead.
+- **No uploads.** Avatars are generated gradients with an optional emoji, so
+  there is nothing to moderate and nothing to store.
+- **Score history and rank movement come from the event log**, not from
+  snapshots, so there is no cron job to run and nothing to backfill.
+
 ## Stack
 
 | Layer      | Choice                                                       |

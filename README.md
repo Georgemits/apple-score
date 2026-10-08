@@ -225,6 +225,17 @@ Edit `prisma/products.ts` (current hardware) or `prisma/legacy-products.ts`
 name (`src/lib/families.ts`) unless set explicitly. Artwork is category-based
 line art from `public/product-art/`.
 
+## Known limitations
+
+- **Two npm advisories remain** in the PostCSS build that Next.js 15 vendors
+  internally. They are build-time only and need Next.js 16 to clear; run
+  `npm audit --omit=dev` to review.
+- **Emoji on share cards** come from a vendored Twemoji subset
+  (`src/assets/emoji`). An avatar emoji outside that set falls back to
+  initials on the card (it still renders everywhere else).
+- **Rate limiting fails open.** If the database is unreachable the limiter
+  logs and allows the request; sign-in itself still needs the database.
+
 ## Disclaimer
 
 Apple Score is an unofficial, for-fun project and is **not affiliated with,
