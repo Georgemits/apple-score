@@ -27,8 +27,13 @@ export default async function WelcomePage() {
 
   // The session outlived the account.
   if (!user) redirect("/login?callbackUrl=/welcome");
-  // Already welcomed (or skipped): this flow is one-time.
-  if (user.onboardedAt) redirect("/home");
+  // Already welcomed (or skipped): this flow is one-time. The reveal step
+  // marks onboarding done and its revalidation re-renders this page, so a
+  // short grace window keeps the reveal on screen instead of bouncing home.
+  const GRACE_MS = 15 * 60 * 1000;
+  if (user.onboardedAt && Date.now() - user.onboardedAt.getTime() > GRACE_MS) {
+    redirect("/home");
+  }
 
   const products: OnboardingProduct[] = catalogue
     .filter((product) => !product.legacy)
