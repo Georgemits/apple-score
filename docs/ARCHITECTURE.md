@@ -229,7 +229,11 @@ minute. Secret achievements are masked until unlocked.
   confirms it). Catalogue products are never deleted — `legacy` marks
   discontinued ones — because `ActivityEvent.scoreAfter` is a snapshot, and
   removing a product would make stored history disagree with the recomputed
-  score. There is deliberately no admin path for it.
+  score. There is deliberately no admin path for it. The CSP keeps
+  `script-src 'self' 'unsafe-inline'`: Next.js emits inline bootstrap scripts,
+  and a per-request nonce would push every page through middleware. Third-party
+  script origins stay blocked, which is what stops an injected `<script src>`;
+  inline injection is prevented by React's escaping rather than by the CSP.
 
 ## Caching
 
