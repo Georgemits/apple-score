@@ -443,6 +443,39 @@ export const getCommunityStats = unstable_cache(
   { revalidate: 60, tags: ["community"] }
 );
 
+export type CommunityCategoryTotal = { category: Category; total: number; units: number; owners: number };
+
+/** Dollars, units and distinct owners per category across all public collections. */
+export const getCommunityCategoryTotals = unstable_cache(
+  async (): Promise<CommunityCategoryTotal[]> => {
+    const rows = await prisma.$queryRaw<CommunityCategoryTotal[]>`
+      SELECT p."category",
+             SUM(COALESCE(up."pricePaidUSD", p."priceUSD") * up."quantity")::bigint::int AS "total",
+             SUM(up."quantity")::int AS "units",
+             COUNT(DISTINCT up."userId")::int AS "owners"
+      FROM "UserProduct" up
+      JOIN "Product" p ON p."id" = up."productId"
+      JOIN "User" u ON u."id" = up."userId"
+      WHERE up."quantity" > 0 AND u."isPublic" = true
+      GROUP BY p."category"
+      ORDER BY "total" DESC
+    `;
+    return rows;
+  },
+  ["community-category-totals"],
+  { revalidate: 60, tags: ["community"] }
+);
+
+/** Newest public collectors, for the census page. */
+export async function getNewestCollectors(take = 6): Promise<PublicUser[]> {
+  return prisma.user.findMany({
+    where: { isPublic: true, products: { some: { quantity: { gt: 0 } } } },
+    select: PUBLIC_USER_SELECT,
+    orderBy: { createdAt: "desc" },
+    take,
+  });
+}
+
 /** Public usernames for the sitemap. */
 export async function getPublicUsernames(
   take = 5000
