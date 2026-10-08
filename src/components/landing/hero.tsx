@@ -21,11 +21,11 @@ async function CatalogueCount() {
 
 export function Hero() {
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="relative isolate py-14 sm:py-20 lg:py-28"
-    >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+    <section aria-labelledby="hero-title" className="relative isolate py-14 sm:py-20 lg:py-28">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
         <div className="absolute -left-32 top-8 size-80 animate-float-slow rounded-full bg-gradient-to-br from-accent/25 to-fuchsia-500/20 blur-3xl" />
         <div className="absolute -right-24 bottom-4 size-72 animate-float-slow rounded-full bg-gradient-to-br from-emerald-400/20 to-accent/20 blur-3xl [animation-delay:-4s]" />
       </div>

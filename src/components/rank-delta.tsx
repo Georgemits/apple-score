@@ -37,7 +37,11 @@ export function RankDelta({ movement, isNew = false, verbose = false, className 
         title="No change this week"
       >
         <Minus className="size-3" aria-hidden="true" />
-        {verbose ? "Holding steady this week" : <span className="sr-only">No change this week</span>}
+        {verbose ? (
+          "Holding steady this week"
+        ) : (
+          <span className="sr-only">No change this week</span>
+        )}
       </span>
     );
   }

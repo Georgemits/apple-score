@@ -29,8 +29,8 @@ export function FinalCta() {
               Your receipts already know the answer.
             </h2>
             <p className="mt-4 max-w-lg text-pretty text-muted-foreground sm:text-lg">
-              Find out, then find out where that puts you. Signing up takes two minutes and, unusually
-              for this hobby, costs nothing.
+              Find out, then find out where that puts you. Signing up takes two minutes and,
+              unusually for this hobby, costs nothing.
             </p>
             <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
               <Button asChild size="lg">

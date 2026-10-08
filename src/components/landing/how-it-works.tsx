@@ -36,8 +36,14 @@ const EXAMPLE = [
 const EXAMPLE_TOTAL = EXAMPLE.reduce((sum, line) => sum + line.quantity * line.price, 0);
 
 const RULES = [
-  { lead: "It is dollars.", rest: `A score of ${formatUSD(12_482)} means ${formatUSD(12_482)} spent.` },
-  { lead: "No multipliers.", rest: "No bonuses, no weights, no rarity points. Money in, score out." },
+  {
+    lead: "It is dollars.",
+    rest: `A score of ${formatUSD(12_482)} means ${formatUSD(12_482)} spent.`,
+  },
+  {
+    lead: "No multipliers.",
+    rest: "No bonuses, no weights, no rarity points. Money in, score out.",
+  },
   {
     lead: "Legacy counts at face value.",
     rest: "A 2001 iPod still scores its $399 launch price. Nostalgia is not inflation-adjusted.",
@@ -111,8 +117,7 @@ export function HowItWorks() {
                       aria-hidden="true"
                     />
                     <p className="text-muted-foreground">
-                      <span className="font-semibold text-foreground">{rule.lead}</span>{" "}
-                      {rule.rest}
+                      <span className="font-semibold text-foreground">{rule.lead}</span> {rule.rest}
                     </p>
                   </li>
                 ))}

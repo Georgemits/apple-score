@@ -43,12 +43,48 @@ type Command = NavCommand | ProductCommand;
 
 const NAV_COMMANDS: NavCommand[] = [
   { kind: "nav", href: "/home", label: "Go to Home", icon: HomeIcon, keywords: "dashboard home" },
-  { kind: "nav", href: "/collection", label: "Go to my collection", icon: Boxes, keywords: "collection products owned" },
-  { kind: "nav", href: "/catalog", label: "Browse the catalogue", icon: Plus, keywords: "catalog add product browse" },
-  { kind: "nav", href: "/leaderboard", label: `Open ${LEADERBOARD_NAME}`, icon: Trophy, keywords: "leaderboard board rank band" },
-  { kind: "nav", href: "/achievements", label: "View achievements", icon: Award, keywords: "achievements badges" },
-  { kind: "nav", href: "/profile", label: "My profile", icon: UserIcon, keywords: "profile me share" },
-  { kind: "nav", href: "/settings", label: "Settings", icon: Settings, keywords: "settings account password" },
+  {
+    kind: "nav",
+    href: "/collection",
+    label: "Go to my collection",
+    icon: Boxes,
+    keywords: "collection products owned",
+  },
+  {
+    kind: "nav",
+    href: "/catalog",
+    label: "Browse the catalogue",
+    icon: Plus,
+    keywords: "catalog add product browse",
+  },
+  {
+    kind: "nav",
+    href: "/leaderboard",
+    label: `Open ${LEADERBOARD_NAME}`,
+    icon: Trophy,
+    keywords: "leaderboard board rank band",
+  },
+  {
+    kind: "nav",
+    href: "/achievements",
+    label: "View achievements",
+    icon: Award,
+    keywords: "achievements badges",
+  },
+  {
+    kind: "nav",
+    href: "/profile",
+    label: "My profile",
+    icon: UserIcon,
+    keywords: "profile me share",
+  },
+  {
+    kind: "nav",
+    href: "/settings",
+    label: "Settings",
+    icon: Settings,
+    keywords: "settings account password",
+  },
 ];
 
 function score(product: SlimProduct, terms: string[]): number {
@@ -62,7 +98,11 @@ function score(product: SlimProduct, terms: string[]): number {
   let total = 0;
   for (const term of terms) {
     if (!haystack.includes(term)) return 0;
-    total += product.name.toLowerCase().startsWith(term) ? 3 : product.name.toLowerCase().includes(term) ? 2 : 1;
+    total += product.name.toLowerCase().startsWith(term)
+      ? 3
+      : product.name.toLowerCase().includes(term)
+        ? 2
+        : 1;
   }
   return total + (product.legacy ? 0 : 0.5) + product.year / 10_000;
 }
@@ -101,7 +141,9 @@ export function CommandPalette() {
     if (!open || products || loading) return;
     setLoading(true);
     fetch("/api/catalog")
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("unauthorized"))))
+      .then((response) =>
+        response.ok ? response.json() : Promise.reject(new Error("unauthorized"))
+      )
       .then((data: { products: SlimProduct[] }) => setProducts(data.products))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
@@ -232,7 +274,9 @@ export function CommandPalette() {
                     <command.icon className="size-4" aria-hidden="true" />
                   </span>
                   <span className="flex-1">{command.label}</span>
-                  {active && <CornerDownLeft className="size-3.5 text-muted-foreground" aria-hidden="true" />}
+                  {active && (
+                    <CornerDownLeft className="size-3.5 text-muted-foreground" aria-hidden="true" />
+                  )}
                 </li>
               );
             }
@@ -248,7 +292,10 @@ export function CommandPalette() {
                 onClick={() => execute(command)}
                 className={cn(common, active ? "bg-secondary" : "hover:bg-secondary/60")}
               >
-                <span className="flex size-8 items-center justify-center rounded-md bg-accent/12 text-base" aria-hidden="true">
+                <span
+                  className="flex size-8 items-center justify-center rounded-md bg-accent/12 text-base"
+                  aria-hidden="true"
+                >
                   {CATEGORY_EMOJI[product.category]}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -259,7 +306,12 @@ export function CommandPalette() {
                   </span>
                 </span>
                 <span className="tabular text-sm font-semibold">{formatUSD(product.priceUSD)}</span>
-                <span className={cn("ml-1 hidden items-center gap-1 text-xs text-muted-foreground sm:flex", !active && "invisible")}>
+                <span
+                  className={cn(
+                    "ml-1 hidden items-center gap-1 text-xs text-muted-foreground sm:flex",
+                    !active && "invisible"
+                  )}
+                >
                   add <CornerDownLeft className="size-3" aria-hidden="true" />
                 </span>
               </li>

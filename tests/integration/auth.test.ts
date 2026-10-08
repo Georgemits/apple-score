@@ -15,7 +15,7 @@ vi.mock("next-auth", () => {
 vi.mock("@/auth", async () => {
   const { AuthError } = await import("next-auth");
   class CredentialsSignin extends AuthError {
-    override type = "CredentialsSignin";
+    override type = "CredentialsSignin" as const;
   }
   return {
     auth: async () => null,

@@ -160,9 +160,19 @@ export default async function ProductPage({ params }: PageProps) {
           Product facts
         </h2>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard label="Launch price" value={formatUSD(product.priceUSD)} hint="US, base configuration" icon={Tag} />
+          <StatCard
+            label="Launch price"
+            value={formatUSD(product.priceUSD)}
+            hint="US, base configuration"
+            icon={Tag}
+          />
           <StatCard label="Announced" value={String(product.year)} icon={Calendar} />
-          <StatCard label="Family" value={product.family} hint={CATEGORY_LABEL[product.category]} icon={Layers} />
+          <StatCard
+            label="Family"
+            value={product.family}
+            hint={CATEGORY_LABEL[product.category]}
+            icon={Layers}
+          />
           <StatCard
             label="Collectors"
             value={formatNumber(holders)}
@@ -187,7 +197,10 @@ export default async function ProductPage({ params }: PageProps) {
                 {owners.map((owner) => (
                   <li key={owner.id} className="flex items-center gap-3">
                     <UserAvatar user={owner} size={36} />
-                    <Link href={`/u/${owner.username}`} className="min-w-0 flex-1 truncate font-medium hover:underline">
+                    <Link
+                      href={`/u/${owner.username}`}
+                      className="min-w-0 flex-1 truncate font-medium hover:underline"
+                    >
                       {owner.displayName ?? `@${owner.username}`}
                     </Link>
                     <span className="tabular text-sm text-muted-foreground">
@@ -215,14 +228,21 @@ export default async function ProductPage({ params }: PageProps) {
                       href={`/p/${sibling.slug}`}
                       className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-secondary/70"
                     >
-                      <ProductImage src={sibling.image} alt="" category={sibling.category} className="size-10 p-2" />
+                      <ProductImage
+                        src={sibling.image}
+                        alt=""
+                        category={sibling.category}
+                        className="size-10 p-2"
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{sibling.name}</span>
                         <span className="block text-xs text-muted-foreground">
                           {sibling.year} · {pluralize(counts[sibling.id] ?? 0, "collector")}
                         </span>
                       </span>
-                      <span className="tabular text-sm font-semibold">{formatUSD(sibling.priceUSD)}</span>
+                      <span className="tabular text-sm font-semibold">
+                        {formatUSD(sibling.priceUSD)}
+                      </span>
                     </Link>
                   </li>
                 ))}

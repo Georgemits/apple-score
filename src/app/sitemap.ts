@@ -5,7 +5,11 @@ import { getPublicUsernames } from "@/lib/queries";
 // Reads the user table, so it is built per request rather than at build time.
 export const dynamic = "force-dynamic";
 
-const STATIC_ROUTES: { path: string; priority: number; changeFrequency: "daily" | "weekly" | "monthly" }[] = [
+const STATIC_ROUTES: {
+  path: string;
+  priority: number;
+  changeFrequency: "daily" | "weekly" | "monthly";
+}[] = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/leaderboard", priority: 0.9, changeFrequency: "daily" },
   { path: "/achievements", priority: 0.7, changeFrequency: "monthly" },

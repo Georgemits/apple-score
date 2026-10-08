@@ -43,7 +43,9 @@ export default async function StatsPage() {
   const byId = new Map(catalogue.map((product) => [product.id, product]));
   const mostOwned = Object.entries(counts)
     .map(([productId, owners]) => ({ product: byId.get(productId), owners }))
-    .filter((entry): entry is { product: NonNullable<typeof entry.product>; owners: number } => Boolean(entry.product))
+    .filter((entry): entry is { product: NonNullable<typeof entry.product>; owners: number } =>
+      Boolean(entry.product)
+    )
     .sort((a, b) => b.owners - a.owners || b.product.priceUSD - a.product.priceUSD)
     .slice(0, 8);
 
@@ -73,7 +75,11 @@ export default async function StatsPage() {
           <StatCard
             label="Dollars tracked"
             value={formatCompactUSD(stats.totalDollars)}
-            hint={stats.totalDollars === 0 ? "Not a single dollar yet. Suspicious." : "across every public collection"}
+            hint={
+              stats.totalDollars === 0
+                ? "Not a single dollar yet. Suspicious."
+                : "across every public collection"
+            }
             icon={DollarSign}
           />
           <StatCard
@@ -163,7 +169,9 @@ export default async function StatsPage() {
           </CardHeader>
           <CardContent>
             {mostOwned.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nobody owns anything yet. Strong start.</p>
+              <p className="text-sm text-muted-foreground">
+                Nobody owns anything yet. Strong start.
+              </p>
             ) : (
               <ol className="space-y-2">
                 {mostOwned.map(({ product, owners }, index) => (
@@ -172,8 +180,15 @@ export default async function StatsPage() {
                       href={`/p/${product.slug}`}
                       className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-secondary/70"
                     >
-                      <span className="tabular w-5 text-right text-xs text-muted-foreground">{index + 1}</span>
-                      <ProductImage src={product.image} alt="" category={product.category} className="size-10 p-2" />
+                      <span className="tabular w-5 text-right text-xs text-muted-foreground">
+                        {index + 1}
+                      </span>
+                      <ProductImage
+                        src={product.image}
+                        alt=""
+                        category={product.category}
+                        className="size-10 p-2"
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{product.name}</span>
                         <span className="block text-xs text-muted-foreground">

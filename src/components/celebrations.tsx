@@ -22,13 +22,13 @@ function AchievementToast({ unlock }: { unlock: UnlockSummary }) {
     <Link
       href={`/achievements?fresh=${encodeURIComponent(unlock.id)}`}
       className={cn(
-        "shine flex w-[22rem] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-popover p-3 pr-4 text-popover-foreground ring-2 outline-none transition-transform hover:scale-[1.02] focus-visible:ring-4",
+        "shine flex w-[22rem] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-popover p-3 pr-4 text-popover-foreground outline-none ring-2 transition-transform hover:scale-[1.02] focus-visible:ring-4",
         RARITY_RING[unlock.rarity]
       )}
       role="status"
     >
       <span
-        className="bg-accent/12 flex size-11 shrink-0 items-center justify-center rounded-full text-2xl"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent/12 text-2xl"
         aria-hidden="true"
       >
         {unlock.emoji}

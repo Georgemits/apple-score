@@ -157,6 +157,7 @@ export function ProfileForm({ user }: { user: ProfileFormUser }) {
           aria-describedby={describedBy(
             errors.displayName ? "profile-displayName-error" : "profile-displayName-hint"
           )}
+          defaultValue={user.displayName ?? ""}
           {...register("displayName")}
         />
         <FieldError id="profile-displayName-error" message={errors.displayName?.message} />
@@ -197,6 +198,7 @@ export function ProfileForm({ user }: { user: ProfileFormUser }) {
             "profile-bio-live"
           )}
           className="flex min-h-24 w-full resize-y rounded-lg border border-input bg-background/60 px-4 py-2.5 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+          defaultValue={user.bio ?? ""}
           {...register("bio")}
         />
         <FieldError id="profile-bio-error" message={errors.bio?.message} />

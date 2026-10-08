@@ -123,10 +123,6 @@ function distinctIn(context: AchievementContext, category: Category): number {
   return context.items.filter((item) => item.product.category === category).length;
 }
 
-function units(context: AchievementContext, predicate: (item: AchievementItem) => boolean): number {
-  return context.items.filter(predicate).reduce((sum, item) => sum + item.quantity, 0);
-}
-
 function owns(context: AchievementContext, predicate: (item: AchievementItem) => boolean): number {
   return context.items.some(predicate) ? 1 : 0;
 }

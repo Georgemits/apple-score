@@ -38,7 +38,7 @@ export async function CommunityStats() {
       </h2>
       <Reveal>
         <Card>
-          <dl className="grid grid-cols-2 sm:grid-cols-4 [&>*:nth-child(even)]:border-l [&>*:nth-child(n+3)]:border-t sm:[&>*:nth-child(n+2)]:border-l sm:[&>*:nth-child(n+3)]:border-t-0">
+          <dl className="grid grid-cols-2 sm:grid-cols-4 [&>*:nth-child(even)]:border-l sm:[&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+3)]:border-t sm:[&>*:nth-child(n+3)]:border-t-0">
             {cells.map((cell) => (
               <div key={cell.label} className="min-w-0 border-border/60 p-5 sm:p-6">
                 <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

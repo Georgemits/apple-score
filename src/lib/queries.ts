@@ -443,7 +443,12 @@ export const getCommunityStats = unstable_cache(
   { revalidate: 60, tags: ["community"] }
 );
 
-export type CommunityCategoryTotal = { category: Category; total: number; units: number; owners: number };
+export type CommunityCategoryTotal = {
+  category: Category;
+  total: number;
+  units: number;
+  owners: number;
+};
 
 /** Dollars, units and distinct owners per category across all public collections. */
 export const getCommunityCategoryTotals = unstable_cache(

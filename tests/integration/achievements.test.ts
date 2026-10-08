@@ -27,7 +27,16 @@ describe("achievement sync", () => {
     const first = await syncAchievements(user.id);
     const ids = first.map((unlock) => unlock.id);
     expect(ids).toEqual(
-      expect.arrayContaining(["first-purchase", "apple-starter", "apple-addict", "think-different", "cheese-grater", "ultra-instinct", "big-spender", "whale"])
+      expect.arrayContaining([
+        "first-purchase",
+        "apple-starter",
+        "apple-addict",
+        "think-different",
+        "cheese-grater",
+        "ultra-instinct",
+        "big-spender",
+        "whale",
+      ])
     );
 
     const again = await syncAchievements(user.id);

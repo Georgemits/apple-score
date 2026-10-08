@@ -3,3 +3,6 @@ node_modules
 pnpm-lock.yaml
 package-lock.json
 prisma/migrations
+prisma/products.ts
+prisma/legacy-products.ts
+src/assets
