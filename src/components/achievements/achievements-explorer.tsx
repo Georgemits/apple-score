@@ -1,217 +1,211 @@
 "use client";
 
 import * as React from "react";
-import { SearchX } from "lucide-react";
-import {
-  GROUP_LABEL,
-  RARITY_LABEL,
-  RARITY_ORDER,
-  getAchievementDefinition,
-  type AchievementGroup,
-  type AchievementRarity,
-} from "@/lib/achievements";
-import { cn, formatNumber } from "@/lib/utils";
-import { AchievementCard } from "@/components/achievement-card";
-import { EmptyState } from "@/components/empty-state";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-export type AchievementView = {
-  id: string;
-  group: AchievementGroup;
-  rarity: AchievementRarity;
-  secret: boolean;
-  /** 0–1; 0 for guests. */
-  progress: number;
-  /** ISO timestamp, or null when locked. */
-  unlockedAt: string | null;
-  holderShare: number;
-};
-
-type Status = "all" | "unlocked" | "locked";
+import { EmptyState } from "@/components/empty-state";
+import {
+  AchievementGroupSection,
+  achievementElementId,
+} from "@/components/achievements/achievement-group";
+import { FilterBar, type FilterCounts } from "@/components/achievements/filter-bar";
+import {
+  DEFAULT_FILTERS,
+  GROUP_KEYS,
+  RARITY_KEYS,
+  isUnlocked,
+  matchesFilters,
+  matchesStatus,
+  resultLabel,
+  type AchievementView,
+  type Filters,
+  type StatusFilter,
+} from "@/components/achievements/types";
 
 type AchievementsExplorerProps = {
   achievements: AchievementView[];
   signedIn: boolean;
-  /** Id to highlight as freshly earned (from `?fresh=`). */
-  fresh?: string | null;
+  /** Id to highlight as freshly earned (validated by the server page). */
+  fresh: string | null;
 };
 
-function Chip({
-  active,
-  onClick,
-  children,
-  count,
+function zeroed<K extends string>(keys: readonly K[]): Record<K | "all", number> {
+  const record = { all: 0 } as Record<K | "all", number>;
+  for (const key of keys) record[key] = 0;
+  return record;
+}
+
+/**
+ * Each axis is counted under the *other* two, so a chip's number is exactly
+ * what pressing it would show.
+ */
+function countOptions(achievements: AchievementView[], filters: Filters): FilterCounts {
+  const counts: FilterCounts = {
+    status: { all: 0, unlocked: 0, locked: 0 },
+    rarity: zeroed(RARITY_KEYS),
+    group: zeroed(GROUP_KEYS),
+  };
+
+  for (const view of achievements) {
+    const statusOk = matchesStatus(view, filters.status);
+    const rarityOk = filters.rarity === "all" || view.rarity === filters.rarity;
+    const groupOk = filters.group === "all" || view.group === filters.group;
+
+    if (rarityOk && groupOk) {
+      counts.status.all += 1;
+      counts.status[isUnlocked(view) ? "unlocked" : "locked"] += 1;
+    }
+    if (statusOk && groupOk) {
+      counts.rarity.all += 1;
+      counts.rarity[view.rarity] += 1;
+    }
+    if (statusOk && rarityOk) {
+      counts.group.all += 1;
+      counts.group[view.group] += 1;
+    }
+  }
+
+  return counts;
+}
+
+function ExplorerEmpty({
+  status,
+  signedIn,
+  onReset,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-  count?: number;
+  status: StatusFilter;
+  signedIn: boolean;
+  onReset: () => void;
 }) {
+  const reset = (
+    <Button type="button" variant="outline" onClick={onReset}>
+      Reset filters
+    </Button>
+  );
+
+  if (status === "unlocked" && !signedIn) {
+    return (
+      <EmptyState
+        emoji="🔒"
+        title="Nothing unlocked yet"
+        description="Achievements unlock as you add what you own. The first one takes about ten seconds and, unusually for Apple, costs nothing."
+        action={
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button asChild>
+              <Link href="/signup">
+                Sign up
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </Button>
+            {reset}
+          </div>
+        }
+      />
+    );
+  }
+
+  if (status === "unlocked") {
+    return (
+      <EmptyState
+        emoji="🔒"
+        title="Nothing unlocked here yet"
+        description="Buying things helps. That is, admittedly, the entire premise."
+        action={reset}
+      />
+    );
+  }
+
+  if (status === "locked") {
+    return (
+      <EmptyState
+        emoji="🏆"
+        title="Nothing left to unlock here"
+        description="You've cleared this set. We'll think of harder ones."
+        action={reset}
+      />
+    );
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors",
-        active
-          ? "border-transparent bg-primary text-primary-foreground"
-          : "border-border bg-background/60 text-muted-foreground hover:text-foreground"
-      )}
-    >
-      {children}
-      {count !== undefined && (
-        <span className={cn("tabular text-xs", active ? "opacity-70" : "opacity-60")}>{count}</span>
-      )}
-    </button>
+    <EmptyState
+      emoji="🔍"
+      title="No achievements match"
+      description="Try fewer filters. They're all still out there."
+      action={reset}
+    />
   );
 }
 
 export function AchievementsExplorer({ achievements, signedIn, fresh }: AchievementsExplorerProps) {
-  const [status, setStatus] = React.useState<Status>("all");
-  const [rarity, setRarity] = React.useState<AchievementRarity | "all">("all");
-  const [group, setGroup] = React.useState<AchievementGroup | "all">("all");
+  const [filters, setFilters] = React.useState<Filters>(DEFAULT_FILTERS);
 
-  const groups = React.useMemo(
-    () => (Object.keys(GROUP_LABEL) as AchievementGroup[]).filter((key) => achievements.some((a) => a.group === key)),
-    [achievements]
-  );
+  const update = React.useCallback((patch: Partial<Filters>) => {
+    setFilters((current) => ({ ...current, ...patch }));
+  }, []);
+  const reset = React.useCallback(() => setFilters(DEFAULT_FILTERS), []);
 
   const filtered = React.useMemo(
+    () => achievements.filter((view) => matchesFilters(view, filters)),
+    [achievements, filters]
+  );
+  const counts = React.useMemo(() => countOptions(achievements, filters), [achievements, filters]);
+
+  const groups = React.useMemo(
     () =>
-      achievements.filter(
-        (achievement) =>
-          (status === "all" ||
-            (status === "unlocked" && achievement.unlockedAt !== null) ||
-            (status === "locked" && achievement.unlockedAt === null)) &&
-          (rarity === "all" || achievement.rarity === rarity) &&
-          (group === "all" || achievement.group === group)
-      ),
-    [achievements, status, rarity, group]
+      GROUP_KEYS.map((group) => ({
+        group,
+        all: achievements.filter((view) => view.group === group),
+        views: filtered.filter((view) => view.group === group),
+      })).filter((entry) => entry.views.length > 0),
+    [achievements, filtered]
   );
 
-  const unlockedCount = achievements.filter((a) => a.unlockedAt !== null).length;
-
-  const reset = () => {
-    setStatus("all");
-    setRarity("all");
-    setGroup("all");
-  };
+  // Bring a freshly unlocked card into view and hand it focus, once.
+  React.useEffect(() => {
+    if (!fresh) return;
+    const element = document.getElementById(achievementElementId(fresh));
+    if (!element) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+    element.focus({ preventScroll: true });
+  }, [fresh]);
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        {signedIn && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-none" role="group" aria-label="Filter by status">
-            <Chip active={status === "all"} onClick={() => setStatus("all")} count={achievements.length}>
-              All
-            </Chip>
-            <Chip active={status === "unlocked"} onClick={() => setStatus("unlocked")} count={unlockedCount}>
-              Unlocked
-            </Chip>
-            <Chip
-              active={status === "locked"}
-              onClick={() => setStatus("locked")}
-              count={achievements.length - unlockedCount}
-            >
-              Locked
-            </Chip>
-          </div>
-        )}
-
-        <div className="flex gap-2 overflow-x-auto scrollbar-none" role="group" aria-label="Filter by rarity">
-          <Chip active={rarity === "all"} onClick={() => setRarity("all")}>
-            Any rarity
-          </Chip>
-          {RARITY_ORDER.map((value) => (
-            <Chip
-              key={value}
-              active={rarity === value}
-              onClick={() => setRarity(value)}
-              count={achievements.filter((a) => a.rarity === value).length}
-            >
-              {RARITY_LABEL[value]}
-            </Chip>
-          ))}
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto scrollbar-none" role="group" aria-label="Filter by group">
-          <Chip active={group === "all"} onClick={() => setGroup("all")}>
-            All groups
-          </Chip>
-          {groups.map((value) => (
-            <Chip key={value} active={group === value} onClick={() => setGroup(value)}>
-              {GROUP_LABEL[value]}
-            </Chip>
-          ))}
-        </div>
-
-        <p className="text-sm text-muted-foreground" aria-live="polite">
-          {formatNumber(filtered.length)} {filtered.length === 1 ? "achievement" : "achievements"}
+    <section aria-labelledby="all-achievements" className="space-y-6">
+      <div className="space-y-1">
+        <h2 id="all-achievements" className="text-2xl font-semibold tracking-tight">
+          All achievements
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Secret ones stay masked until you earn them. You will know it when you see it.
         </p>
       </div>
 
+      <FilterBar
+        filters={filters}
+        counts={counts}
+        onChange={update}
+        onReset={reset}
+        resultLabel={resultLabel(filtered.length, achievements.length)}
+      />
+
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={SearchX}
-          title="Nothing here"
-          description={
-            status === "unlocked"
-              ? "No unlocked achievements match. Go add something shiny."
-              : "No achievements match those filters."
-          }
-          action={
-            <Button variant="outline" onClick={reset}>
-              Reset filters
-            </Button>
-          }
-        />
+        <ExplorerEmpty status={filters.status} signedIn={signedIn} onReset={reset} />
       ) : (
         <div className="space-y-10">
-          {groups
-            .filter((key) => filtered.some((a) => a.group === key))
-            .map((key) => {
-              const inGroup = filtered.filter((a) => a.group === key);
-              const unlockedInGroup = achievements.filter((a) => a.group === key && a.unlockedAt !== null).length;
-              const totalInGroup = achievements.filter((a) => a.group === key).length;
-              return (
-                <section key={key} aria-labelledby={`group-${key}`} className="space-y-4">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h2 id={`group-${key}`} className="text-xl font-semibold tracking-tight">
-                      {GROUP_LABEL[key]}
-                    </h2>
-                    {signedIn && (
-                      <span className="tabular text-sm text-muted-foreground">
-                        {unlockedInGroup}/{totalInGroup} unlocked
-                      </span>
-                    )}
-                  </div>
-                  <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {inGroup.map((achievement, index) => {
-                      const definition = getAchievementDefinition(achievement.id);
-                      if (!definition) return null;
-                      return (
-                        <li
-                          key={achievement.id}
-                          className="animate-enter-up"
-                          style={{ animationDelay: `${Math.min(index * 30, 240)}ms` }}
-                        >
-                          <AchievementCard
-                            definition={definition}
-                            unlockedAt={achievement.unlockedAt ? new Date(achievement.unlockedAt) : null}
-                            progress={achievement.progress}
-                            holderShare={achievement.holderShare}
-                            fresh={fresh === achievement.id}
-                          />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              );
-            })}
+          {groups.map(({ group, all, views }) => (
+            <AchievementGroupSection
+              key={group}
+              group={group}
+              all={all}
+              views={views}
+              signedIn={signedIn}
+              fresh={fresh}
+            />
+          ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
