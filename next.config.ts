@@ -20,7 +20,11 @@ const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
-  "upgrade-insecure-requests",
+  // Only on HTTPS deployments: on a plain-HTTP host (local Docker, a LAN
+  // preview) the browser would upgrade same-origin fetches and break them.
+  ...((process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https://")
+    ? ["upgrade-insecure-requests"]
+    : []),
 ].join("; ");
 
 const securityHeaders = [

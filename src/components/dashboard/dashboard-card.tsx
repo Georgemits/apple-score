@@ -52,7 +52,7 @@ export function DashboardCard({
               {Icon && (
                 <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               )}
-              <span className="truncate">{title}</span>
+              <span className="min-w-0 text-balance">{title}</span>
             </h2>
             {description && (
               <p className="mt-0.5 text-pretty text-sm text-muted-foreground">{description}</p>

@@ -27,6 +27,8 @@ import {
 import type { CatalogueItem, OwnedFilter, SortKey } from "@/components/catalog/types";
 
 const GRID = "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
+/** Products rendered before a "Show more" button; keeps phones fast. */
+const PAGE_SIZE = 48;
 
 type CatalogueProps = {
   items: CatalogueItem[];
@@ -92,12 +94,18 @@ export function Catalogue({ items, currentScore, initialCategory, initialQuery }
     [inCategory, family, sort]
   );
 
+  // Render the catalogue in pages so a 230-product list never lands at once.
+  const [limit, setLimit] = React.useState(PAGE_SIZE);
+  React.useEffect(() => setLimit(PAGE_SIZE), [results]);
+  const visible = React.useMemo(() => results.slice(0, limit), [results, limit]);
+  const hiddenCount = results.length - visible.length;
+
   // Newest-first reads best as a run of families; other sorts stay flat.
   const groups = React.useMemo(() => {
     if (sort !== "newest") return null;
-    const grouped = groupByFamily(results);
+    const grouped = groupByFamily(visible);
     return grouped.length > 1 ? grouped : null;
-  }, [results, sort]);
+  }, [visible, sort]);
 
   const activeItem = React.useMemo(
     () => (activeId === null ? null : (items.find((item) => item.id === activeId) ?? null)),
@@ -245,7 +253,7 @@ export function Catalogue({ items, currentScore, initialCategory, initialQuery }
           </div>
         ) : (
           <ul className={GRID}>
-            {results.map((item, position) => (
+            {visible.map((item, position) => (
               <ProductTile
                 key={item.id}
                 item={item}
@@ -254,6 +262,17 @@ export function Catalogue({ items, currentScore, initialCategory, initialQuery }
               />
             ))}
           </ul>
+        )}
+
+        {hiddenCount > 0 && (
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <Button variant="outline" onClick={() => setLimit((value) => value + PAGE_SIZE)}>
+              Show {formatNumber(Math.min(PAGE_SIZE, hiddenCount))} more
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Showing {formatNumber(visible.length)} of {formatNumber(results.length)}
+            </p>
+          </div>
         )}
       </section>
 
